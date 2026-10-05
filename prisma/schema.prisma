@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// RBAC Schema
+// ============================================
+
+model User {
+  id         Int       @id @default(autoincrement())
+  email      String    @unique
+  password   String
+  first_name String
+  last_name  String
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Relations
+  position_id Int
+  position    Position @relation(fields: [position_id], references: [id])
+
+  @@map("users")
+}
+
+model Position {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+
+  // Relations
+  users                User[]
+  position_permissions PositionPermission[]
+
+  @@map("positions")
+}
+
+model Permission {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  resource    String // e.g., 'USER', 'TRANSACTION', 'REPORT'
+  action      String // e.g., 'VIEW', 'ADD', 'UPDATE', 'DELETE'
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+
+  // Relations
+  position_permissions PositionPermission[]
+
+  @@map("permissions")
+}
+
+model PositionPermission {
+  id            Int      @id @default(autoincrement())
+  position_id   Int
+  permission_id Int
+  created_at    DateTime @default(now())
+
+  // Relations
+  position   Position   @relation(fields: [position_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([position_id, permission_id])
+  @@map("position_permissions")
+}
+
+model Layer {
+  id BigInt @default(autoincrement())
+  code String
+  name String
+  geometryType String @map("geometry_type")
+
+  @@map("layer")
+}
+
+model Feature {
+  id BigInt @default(autoincrement())
+  layerId BigInt @map("layer_id")
+  importBatchId BigInt? @map("import_batch_id")
+  geom String
+  sourceId String? @map("source_id")
+
+  @@index([layerId])
+  @@index([geom])
+  @@index([sourceId])
+  @@map("feature")
+}
+
+model Road {
+  id BigInt @default(autoincrement())
+  osmWayId BigInt @map("osm_way_id")
+  name String?
+  highway String?
+  maxspeedKmh Int? @map("maxspeed_kmh")
+  maxspeedStatus String @default("missing") @map("maxspeed_status")
+  surface String?
+  surfaceStatus String @default("missing") @map("surface_status")
+  sidewalk String?
+  sidewalkStatus String @default("missing") @map("sidewalk_status")
+  access String?
+  tags Json?
+
+  @@map("road")
+}
+
+model RoadNode {
+  id BigInt @default(autoincrement())
+  featureId BigInt @map("feature_id")
+  osmNodeId BigInt? @map("osm_node_id")
+
+  @@index([osmNodeId])
+  @@map("road_node")
+}
+
+model RoadEdge {
+  id BigInt @default(autoincrement())
+  roadId BigInt @map("road_id")
+  featureId BigInt @map("feature_id")
+  sourceNodeId BigInt @map("source_node_id")
+  targetNodeId BigInt @map("target_node_id")
+  seqInRoad Int? @map("seq_in_road")
+  distanceM Float @map("distance_m")
+  travelTimeS Float @map("travel_time_s")
+  isRoutable Boolean @default(true) @map("is_routable")
+  costSafe Float @map("cost_safe")
+  costBalanced Float @map("cost_balanced")
+
+  @@index([roadId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@map("road_edge")
+}
+
+model School {
+  id BigInt @default(autoincrement())
+  npsn String?
+  name String
+  level String?
+  status String?
+  address String?
+  kelurahan String?
+  kecamatan String?
+  featureId BigInt @map("feature_id")
+
+  @@map("school")
+}
+
+model SchoolAccessPoint {
+  id BigInt @default(autoincrement())
+  schoolId BigInt @map("school_id")
+  roadNodeId BigInt @map("road_node_id")
+  snapDistanceM Float? @map("snap_distance_m")
+
+  @@map("school_access_point")
+}

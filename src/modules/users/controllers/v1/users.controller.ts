@@ -7,7 +7,7 @@ import {
   Param,
   Delete,
   Query,
-  ParseIntPipe,
+  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -55,19 +55,19 @@ export class UsersController {
   @Get(':id')
   @Permissions(PERMISSIONS.USER.VIEW)
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiSuccessResponse(UserEntity)
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<UserEntity> {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
   @Permissions(PERMISSIONS.USER.UPDATE)
   @ApiOperation({ summary: 'Update user' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiSuccessResponse(UserEntity)
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
     return this.usersService.update(id, updateUserDto);
@@ -77,18 +77,18 @@ export class UsersController {
   @Permissions(PERMISSIONS.USER.DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user (soft delete)' })
-  @ApiParam({ name: 'id', type: Number })
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.usersService.remove(id);
   }
 
   @Patch(':id/position')
   @Permissions(PERMISSIONS.USER.CHANGE_POSITION)
   @ApiOperation({ summary: 'Change user position/role' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiSuccessResponse(UserEntity)
   async changePosition(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() changePositionDto: ChangePositionDto,
   ): Promise<UserEntity> {
     return this.usersService.changePosition(id, changePositionDto);
@@ -97,10 +97,10 @@ export class UsersController {
   @Post(':id/permissions/assign')
   @Permissions(PERMISSIONS.USER.MANAGE_PERMISSION)
   @ApiOperation({ summary: 'Assign permissions to user position' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiSuccessResponse(UserEntity)
   async assignPermissions(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() managePermissionsDto: ManagePermissionsDto,
   ): Promise<UserEntity> {
     return this.usersService.assignPermissions(id, managePermissionsDto);
@@ -109,10 +109,10 @@ export class UsersController {
   @Post(':id/permissions/revoke')
   @Permissions(PERMISSIONS.USER.MANAGE_PERMISSION)
   @ApiOperation({ summary: 'Revoke permissions from user position' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiSuccessResponse(UserEntity)
   async revokePermissions(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() managePermissionsDto: ManagePermissionsDto,
   ): Promise<UserEntity> {
     return this.usersService.revokePermissions(id, managePermissionsDto);

@@ -4,7 +4,7 @@ import { Exclude } from 'class-transformer';
 
 export class UserEntity implements Partial<PrismaUser> {
   @ApiProperty()
-  id: number;
+  id: string;
 
   @ApiProperty()
   email: string;
@@ -22,7 +22,7 @@ export class UserEntity implements Partial<PrismaUser> {
   is_active: boolean;
 
   @ApiProperty()
-  position_id: number;
+  position_id: string;
 
   @ApiPropertyOptional()
   position?: Partial<Position>;

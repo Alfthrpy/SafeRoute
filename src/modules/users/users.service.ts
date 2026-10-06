@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { PasswordUtil } from '@common/utils/password.util';
 import { CreateUserDto } from './core/dto/create-user.dto';
@@ -71,7 +72,7 @@ export class UsersService {
     const { page = 1, limit = 10, search, is_active, position_id } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       deleted_at: null,
     };
 
@@ -129,7 +130,7 @@ export class UsersService {
     };
   }
 
-  async findOne(id: number): Promise<UserEntity> {
+  async findOne(id: string): Promise<UserEntity> {
     const user = await this.prisma.user.findFirst({
       where: { id, deleted_at: null },
       include: {
@@ -152,7 +153,7 @@ export class UsersService {
     return UserTransformHelper.toEntity(user);
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<UserEntity> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
     const user = await this.prisma.user.findFirst({
       where: { id, deleted_at: null },
     });
@@ -203,7 +204,7 @@ export class UsersService {
     return UserTransformHelper.toEntity(updatedUser);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const user = await this.prisma.user.findFirst({
       where: { id, deleted_at: null },
     });
@@ -219,7 +220,7 @@ export class UsersService {
     });
   }
 
-  async changePosition(id: number, changePositionDto: ChangePositionDto): Promise<UserEntity> {
+  async changePosition(id: string, changePositionDto: ChangePositionDto): Promise<UserEntity> {
     const user = await this.prisma.user.findFirst({
       where: { id, deleted_at: null },
     });
@@ -257,7 +258,7 @@ export class UsersService {
   }
 
   async assignPermissions(
-    userId: number,
+    userId: string,
     managePermissionsDto: ManagePermissionsDto,
   ): Promise<UserEntity> {
     const user = await this.prisma.user.findFirst({
@@ -287,9 +288,7 @@ export class UsersService {
     const newPermissionIds = permissions.map((p) => p.id);
 
     // Find permissions to add
-    const permissionsToAdd = newPermissionIds.filter(
-      (id) => !currentPermissionIds.includes(id),
-    );
+    const permissionsToAdd = newPermissionIds.filter((id) => !currentPermissionIds.includes(id));
 
     // Add new permissions
     if (permissionsToAdd.length > 0) {
@@ -307,7 +306,7 @@ export class UsersService {
   }
 
   async revokePermissions(
-    userId: number,
+    userId: string,
     managePermissionsDto: ManagePermissionsDto,
   ): Promise<UserEntity> {
     const user = await this.prisma.user.findFirst({

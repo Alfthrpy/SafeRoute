@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationDto } from '@common/dto/pagination.dto';
 
@@ -15,8 +15,8 @@ export class UserQueryDto extends PaginationDto {
   @IsBoolean()
   is_active?: boolean;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsOptional()
-  @Type(() => Number)
-  position_id?: number;
+  @IsUUID('4')
+  position_id?: string;
 }

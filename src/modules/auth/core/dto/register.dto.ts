@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsInt } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsUUID } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'bhagaskoro@kulidigital.com' })
@@ -23,8 +23,8 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Last name is required' })
   last_name: string;
 
-  @ApiProperty({ example: 2, description: 'Position ID' })
-  @IsInt({ message: 'Position ID must be an integer' })
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'Position UUID' })
+  @IsUUID('4', { message: 'Position ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Position ID is required' })
-  position_id: number;
+  position_id: string;
 }

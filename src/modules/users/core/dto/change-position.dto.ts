@@ -1,9 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsUUID } from 'class-validator';
 
 export class ChangePositionDto {
-  @ApiProperty({ example: 2, description: 'New position ID' })
-  @IsInt({ message: 'Position ID must be an integer' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'New position UUID',
+  })
+  @IsUUID('4', { message: 'Position ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Position ID is required' })
-  position_id: number;
+  position_id: string;
 }

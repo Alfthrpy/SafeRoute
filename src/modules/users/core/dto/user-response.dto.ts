@@ -3,7 +3,7 @@ import { Exclude } from 'class-transformer';
 
 export class UserResponseDto {
   @ApiProperty()
-  id: number;
+  id: string;
 
   @ApiProperty()
   email: string;

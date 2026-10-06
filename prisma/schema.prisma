@@ -62,10 +62,12 @@ model Permission {
 }
 
 model PositionPermission {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   position_id   String
   permission_id String
-  created_at    DateTime @default(now())
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
 
   position   Position   @relation(fields: [position_id], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
@@ -80,10 +82,13 @@ model PositionPermission {
 // ============================================
 
 model Layer {
-  id           String @id @default(uuid())
-  code         String @unique
+  id           String    @id @default(uuid())
+  code         String    @unique
   name         String
-  geometryType String @map("geometry_type")
+  geometryType String    @map("geometry_type")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
 
   features Feature[]
 
@@ -92,12 +97,15 @@ model Layer {
 }
 
 model Feature {
-  id       String              @id @default(uuid())
-  layerId  String              @map("layer_id")
-  geom     Unsupported("geometry")
-  sourceId String?             @map("source_id")
+  id         String                  @id @default(uuid())
+  layerId    String                  @map("layer_id")
+  geom       Unsupported("geometry")
+  sourceId   String?                 @map("source_id")
+  created_at DateTime                @default(now())
+  updated_at DateTime                @updatedAt
+  deleted_at DateTime?
 
-  layer    Layer      @relation(fields: [layerId], references: [id])
+  layer    Layer     @relation(fields: [layerId], references: [id])
   roadNode RoadNode?
   roadEdge RoadEdge?
   school   School?
@@ -109,18 +117,21 @@ model Feature {
 }
 
 model Road {
-  id             String  @id @default(uuid())
-  osmWayId       String  @unique @map("osm_way_id")
+  id             String    @id @default(uuid())
+  osmWayId       String    @unique @map("osm_way_id")
   name           String?
   highway        String?
-  maxspeedKmh    Int?    @map("maxspeed_kmh")
-  maxspeedStatus String  @default("missing") @map("maxspeed_status")
+  maxspeedKmh    Int?      @map("maxspeed_kmh")
+  maxspeedStatus String    @default("missing") @map("maxspeed_status")
   surface        String?
-  surfaceStatus  String  @default("missing") @map("surface_status")
+  surfaceStatus  String    @default("missing") @map("surface_status")
   sidewalk       String?
-  sidewalkStatus String  @default("missing") @map("sidewalk_status")
+  sidewalkStatus String    @default("missing") @map("sidewalk_status")
   access         String?
   tags           Json?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
 
   edges RoadEdge[]
 
@@ -129,13 +140,16 @@ model Road {
 }
 
 model RoadNode {
-  id        String  @id @default(uuid())
-  featureId String  @unique @map("feature_id")
-  osmNodeId String? @map("osm_node_id")
+  id         String    @id @default(uuid())
+  featureId  String    @unique @map("feature_id")
+  osmNodeId  String?   @map("osm_node_id")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
 
-  feature  Feature    @relation(fields: [featureId], references: [id])
-  outEdges RoadEdge[] @relation("EdgeSource")
-  inEdges  RoadEdge[] @relation("EdgeTarget")
+  feature      Feature             @relation(fields: [featureId], references: [id])
+  outEdges     RoadEdge[]          @relation("EdgeSource")
+  inEdges      RoadEdge[]          @relation("EdgeTarget")
   accessPoints SchoolAccessPoint[]
 
   @@index([osmNodeId])
@@ -144,17 +158,20 @@ model RoadNode {
 }
 
 model RoadEdge {
-  id            String  @id @default(uuid())
-  roadId        String  @map("road_id")
-  featureId     String  @unique @map("feature_id")
-  sourceNodeId  String  @map("source_node_id")
-  targetNodeId  String  @map("target_node_id")
-  seqInRoad      Int?    @map("seq_in_road")
-  distanceM     Float   @map("distance_m")
-  travelTimeS   Float   @map("travel_time_s")
-  isRoutable    Boolean @default(true) @map("is_routable")
-  costSafe      Float?  @map("cost_safe")
-  costBalanced  Float?  @map("cost_balanced")
+  id           String    @id @default(uuid())
+  roadId       String    @map("road_id")
+  featureId    String    @unique @map("feature_id")
+  sourceNodeId String    @map("source_node_id")
+  targetNodeId String    @map("target_node_id")
+  seqInRoad    Int?      @map("seq_in_road")
+  distanceM    Float     @map("distance_m")
+  travelTimeS  Float     @map("travel_time_s")
+  isRoutable   Boolean   @default(true) @map("is_routable")
+  costSafe     Float?    @map("cost_safe")
+  costBalanced Float?    @map("cost_balanced")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
 
   road       Road     @relation(fields: [roadId], references: [id])
   feature    Feature  @relation(fields: [featureId], references: [id])
@@ -169,15 +186,18 @@ model RoadEdge {
 }
 
 model School {
-  id        String  @id @default(uuid())
-  npsn      String? @unique
-  name      String
-  level     String?
-  status    String?
-  address   String?
-  kelurahan String?
-  kecamatan String?
-  featureId String  @unique @map("feature_id")
+  id         String    @id @default(uuid())
+  npsn       String?   @unique
+  name       String
+  level      String?
+  status     String?
+  address    String?
+  kelurahan  String?
+  kecamatan  String?
+  featureId  String    @unique @map("feature_id")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
 
   feature      Feature             @relation(fields: [featureId], references: [id])
   accessPoints SchoolAccessPoint[]
@@ -187,10 +207,13 @@ model School {
 }
 
 model SchoolAccessPoint {
-  id            String @id @default(uuid())
-  schoolId      String @map("school_id")
-  roadNodeId    String @map("road_node_id")
-  snapDistanceM Float? @map("snap_distance_m")
+  id            String    @id @default(uuid())
+  schoolId      String    @map("school_id")
+  roadNodeId    String    @map("road_node_id")
+  snapDistanceM Float?    @map("snap_distance_m")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
 
   school   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   roadNode RoadNode @relation(fields: [roadNodeId], references: [id])

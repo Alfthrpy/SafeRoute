@@ -4,14 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "saferoute"]
 }
 
 // ============================================
-// RBAC Schema
+// RBAC Schema (tidak diubah)
 // ============================================
 
 model User {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(uuid())
   email      String    @unique
   password   String
   first_name String
@@ -21,15 +22,15 @@ model User {
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
 
-  // Relations
-  position_id Int
+  position_id String
   position    Position @relation(fields: [position_id], references: [id])
 
   @@map("users")
+  @@schema("saferoute")
 }
 
 model Position {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(uuid())
   name        String    @unique
   description String?
   is_active   Boolean   @default(true)
@@ -37,129 +38,164 @@ model Position {
   updated_at  DateTime  @updatedAt
   deleted_at  DateTime?
 
-  // Relations
   users                User[]
   position_permissions PositionPermission[]
 
   @@map("positions")
+  @@schema("saferoute")
 }
 
 model Permission {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(uuid())
   name        String    @unique
   description String?
-  resource    String // e.g., 'USER', 'TRANSACTION', 'REPORT'
-  action      String // e.g., 'VIEW', 'ADD', 'UPDATE', 'DELETE'
+  resource    String
+  action      String
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
   deleted_at  DateTime?
 
-  // Relations
   position_permissions PositionPermission[]
 
   @@map("permissions")
+  @@schema("saferoute")
 }
 
 model PositionPermission {
-  id            Int      @id @default(autoincrement())
-  position_id   Int
-  permission_id Int
+  id            String   @id @default(uuid())
+  position_id   String
+  permission_id String
   created_at    DateTime @default(now())
 
-  // Relations
   position   Position   @relation(fields: [position_id], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
 
   @@unique([position_id, permission_id])
   @@map("position_permissions")
+  @@schema("saferoute")
 }
 
+// ============================================
+// Saferoute Schema
+// ============================================
+
 model Layer {
-  id BigInt @default(autoincrement())
-  code String
-  name String
+  id           String @id @default(uuid())
+  code         String @unique
+  name         String
   geometryType String @map("geometry_type")
 
+  features Feature[]
+
   @@map("layer")
+  @@schema("saferoute")
 }
 
 model Feature {
-  id BigInt @default(autoincrement())
-  layerId BigInt @map("layer_id")
-  importBatchId BigInt? @map("import_batch_id")
-  geom String
-  sourceId String? @map("source_id")
+  id       String              @id @default(uuid())
+  layerId  String              @map("layer_id")
+  geom     Unsupported("geometry")
+  sourceId String?             @map("source_id")
+
+  layer    Layer      @relation(fields: [layerId], references: [id])
+  roadNode RoadNode?
+  roadEdge RoadEdge?
+  school   School?
 
   @@index([layerId])
-  @@index([geom])
   @@index([sourceId])
   @@map("feature")
+  @@schema("saferoute")
 }
 
 model Road {
-  id BigInt @default(autoincrement())
-  osmWayId BigInt @map("osm_way_id")
-  name String?
-  highway String?
-  maxspeedKmh Int? @map("maxspeed_kmh")
-  maxspeedStatus String @default("missing") @map("maxspeed_status")
-  surface String?
-  surfaceStatus String @default("missing") @map("surface_status")
-  sidewalk String?
-  sidewalkStatus String @default("missing") @map("sidewalk_status")
-  access String?
-  tags Json?
+  id             String  @id @default(uuid())
+  osmWayId       String  @unique @map("osm_way_id")
+  name           String?
+  highway        String?
+  maxspeedKmh    Int?    @map("maxspeed_kmh")
+  maxspeedStatus String  @default("missing") @map("maxspeed_status")
+  surface        String?
+  surfaceStatus  String  @default("missing") @map("surface_status")
+  sidewalk       String?
+  sidewalkStatus String  @default("missing") @map("sidewalk_status")
+  access         String?
+  tags           Json?
+
+  edges RoadEdge[]
 
   @@map("road")
+  @@schema("saferoute")
 }
 
 model RoadNode {
-  id BigInt @default(autoincrement())
-  featureId BigInt @map("feature_id")
-  osmNodeId BigInt? @map("osm_node_id")
+  id        String  @id @default(uuid())
+  featureId String  @unique @map("feature_id")
+  osmNodeId String? @map("osm_node_id")
+
+  feature  Feature    @relation(fields: [featureId], references: [id])
+  outEdges RoadEdge[] @relation("EdgeSource")
+  inEdges  RoadEdge[] @relation("EdgeTarget")
+  accessPoints SchoolAccessPoint[]
 
   @@index([osmNodeId])
   @@map("road_node")
+  @@schema("saferoute")
 }
 
 model RoadEdge {
-  id BigInt @default(autoincrement())
-  roadId BigInt @map("road_id")
-  featureId BigInt @map("feature_id")
-  sourceNodeId BigInt @map("source_node_id")
-  targetNodeId BigInt @map("target_node_id")
-  seqInRoad Int? @map("seq_in_road")
-  distanceM Float @map("distance_m")
-  travelTimeS Float @map("travel_time_s")
-  isRoutable Boolean @default(true) @map("is_routable")
-  costSafe Float @map("cost_safe")
-  costBalanced Float @map("cost_balanced")
+  id            String  @id @default(uuid())
+  roadId        String  @map("road_id")
+  featureId     String  @unique @map("feature_id")
+  sourceNodeId  String  @map("source_node_id")
+  targetNodeId  String  @map("target_node_id")
+  seqInRoad      Int?    @map("seq_in_road")
+  distanceM     Float   @map("distance_m")
+  travelTimeS   Float   @map("travel_time_s")
+  isRoutable    Boolean @default(true) @map("is_routable")
+  costSafe      Float?  @map("cost_safe")
+  costBalanced  Float?  @map("cost_balanced")
+
+  road       Road     @relation(fields: [roadId], references: [id])
+  feature    Feature  @relation(fields: [featureId], references: [id])
+  sourceNode RoadNode @relation("EdgeSource", fields: [sourceNodeId], references: [id])
+  targetNode RoadNode @relation("EdgeTarget", fields: [targetNodeId], references: [id])
 
   @@index([roadId])
   @@index([sourceNodeId])
   @@index([targetNodeId])
   @@map("road_edge")
+  @@schema("saferoute")
 }
 
 model School {
-  id BigInt @default(autoincrement())
-  npsn String?
-  name String
-  level String?
-  status String?
-  address String?
+  id        String  @id @default(uuid())
+  npsn      String? @unique
+  name      String
+  level     String?
+  status    String?
+  address   String?
   kelurahan String?
   kecamatan String?
-  featureId BigInt @map("feature_id")
+  featureId String  @unique @map("feature_id")
+
+  feature      Feature             @relation(fields: [featureId], references: [id])
+  accessPoints SchoolAccessPoint[]
 
   @@map("school")
+  @@schema("saferoute")
 }
 
 model SchoolAccessPoint {
-  id BigInt @default(autoincrement())
-  schoolId BigInt @map("school_id")
-  roadNodeId BigInt @map("road_node_id")
+  id            String @id @default(uuid())
+  schoolId      String @map("school_id")
+  roadNodeId    String @map("road_node_id")
   snapDistanceM Float? @map("snap_distance_m")
 
+  school   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  roadNode RoadNode @relation(fields: [roadNodeId], references: [id])
+
+  @@unique([schoolId, roadNodeId])
   @@map("school_access_point")
+  @@schema("saferoute")
 }

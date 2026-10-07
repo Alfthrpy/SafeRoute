@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 export const seedPermissions = async (
   prisma: PrismaClient,
-  adminPositionId: number,
-  memberPositionId: number,
+  adminPositionId: string,
+  memberPositionId: string,
 ) => {
   console.log('🔐 Seeding permissions...');
 
@@ -27,6 +27,9 @@ export const seedPermissions = async (
     { name: 'ADD_PERMISSION', resource: 'PERMISSION', action: 'ADD', description: 'Create new permission' },
     { name: 'UPDATE_PERMISSION', resource: 'PERMISSION', action: 'UPDATE', description: 'Update permission information' },
     { name: 'DELETE_PERMISSION', resource: 'PERMISSION', action: 'DELETE', description: 'Delete permission' },
+
+    // School Access
+    { name: 'VIEW_SCHOOL', resource: 'SCHOOL', action: 'VIEW', description: 'View school information' },
   ];
 
   const permissions = await Promise.all(
@@ -52,16 +55,18 @@ export const seedPermissions = async (
     data: adminPermissions,
   });
 
-  // Member gets only VIEW_USER permission
-  const viewUserPermission = permissions.find((p) => p.name === 'VIEW_USER');
-  if (viewUserPermission) {
-    await prisma.positionPermission.create({
-      data: {
-        position_id: memberPositionId,
-        permission_id: viewUserPermission.id,
-      },
-    });
+  // Member gets only permission to view schools
+  const viewSchoolPermission = permissions.find((p) => p.name === 'VIEW_SCHOOL');
+  if (!viewSchoolPermission) {
+    throw new Error('VIEW_SCHOOL permission was not seeded');
   }
+
+  await prisma.positionPermission.create({
+    data: {
+      position_id: memberPositionId,
+      permission_id: viewSchoolPermission.id,
+    },
+  });
 
   console.log('✅ Permissions assigned to positions');
 };

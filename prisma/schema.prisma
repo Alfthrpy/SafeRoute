@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["public", "saferoute"]
+  schemas  = ["public"]
 }
 
 // ============================================
@@ -26,7 +26,7 @@ model User {
   position    Position @relation(fields: [position_id], references: [id])
 
   @@map("users")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model Position {
@@ -42,7 +42,7 @@ model Position {
   position_permissions PositionPermission[]
 
   @@map("positions")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model Permission {
@@ -58,7 +58,7 @@ model Permission {
   position_permissions PositionPermission[]
 
   @@map("permissions")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model PositionPermission {
@@ -74,11 +74,11 @@ model PositionPermission {
 
   @@unique([position_id, permission_id])
   @@map("position_permissions")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 // ============================================
-// Saferoute Schema
+// public Schema
 // ============================================
 
 model Layer {
@@ -93,7 +93,7 @@ model Layer {
   features Feature[]
 
   @@map("layer")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model Feature {
@@ -113,7 +113,7 @@ model Feature {
   @@index([layerId])
   @@index([sourceId])
   @@map("feature")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model Road {
@@ -136,7 +136,7 @@ model Road {
   edges RoadEdge[]
 
   @@map("road")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model RoadNode {
@@ -154,7 +154,7 @@ model RoadNode {
 
   @@index([osmNodeId])
   @@map("road_node")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model RoadEdge {
@@ -182,7 +182,7 @@ model RoadEdge {
   @@index([sourceNodeId])
   @@index([targetNodeId])
   @@map("road_edge")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model School {
@@ -203,7 +203,7 @@ model School {
   accessPoints SchoolAccessPoint[]
 
   @@map("school")
-  @@schema("saferoute")
+  @@schema("public")
 }
 
 model SchoolAccessPoint {
@@ -220,5 +220,5 @@ model SchoolAccessPoint {
 
   @@unique([schoolId, roadNodeId])
   @@map("school_access_point")
-  @@schema("saferoute")
+  @@schema("public")
 }

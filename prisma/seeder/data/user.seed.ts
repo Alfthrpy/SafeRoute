@@ -3,8 +3,8 @@ import * as bcrypt from 'bcrypt';
 
 export const seedUsers = async (
   prisma: PrismaClient,
-  adminPositionId: number,
-  memberPositionId: number,
+  adminPositionId: string,
+  memberPositionId: string,
 ) => {
   console.log('👥 Seeding users...');
 

@@ -39,6 +39,7 @@ const users_module_1 = __webpack_require__(/*! ./modules/users/users.module */ "
 const auth_module_1 = __webpack_require__(/*! ./modules/auth/auth.module */ "./src/modules/auth/auth.module.ts");
 const layers_module_1 = __webpack_require__(/*! ./modules/layers/layers.module */ "./src/modules/layers/layers.module.ts");
 const schools_module_1 = __webpack_require__(/*! ./modules/schools/schools.module */ "./src/modules/schools/schools.module.ts");
+const routes_module_1 = __webpack_require__(/*! ./modules/routes/routes.module */ "./src/modules/routes/routes.module.ts");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,7 +56,8 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             health_module_1.HealthModule,
             layers_module_1.LayersModule,
-            schools_module_1.SchoolsModule
+            schools_module_1.SchoolsModule,
+            routes_module_1.RoutesModule
         ],
         providers: [
             {
@@ -123,7 +125,10 @@ exports.PERMISSIONS = {
         ADD: 'ADD_LAYER',
         UPDATE: 'UPDATE_LAYER',
         DELETE: 'DELETE_LAYER',
-    }
+    },
+    ROUTE: {
+        VIEW: 'VIEW_ROUTE',
+    },
 };
 
 
@@ -1857,6 +1862,330 @@ exports.LayersService = LayersService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
 ], LayersService);
+
+
+/***/ },
+
+/***/ "./src/modules/routes/controllers/v1/routes.controller.ts"
+/*!****************************************************************!*\
+  !*** ./src/modules/routes/controllers/v1/routes.controller.ts ***!
+  \****************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RoutesController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const routes_service_1 = __webpack_require__(/*! ../../routes.service */ "./src/modules/routes/routes.service.ts");
+const permissions_constant_1 = __webpack_require__(/*! @common/constants/permissions.constant */ "./src/common/constants/permissions.constant.ts");
+const permissions_decorator_1 = __webpack_require__(/*! @common/decorators/permissions.decorator */ "./src/common/decorators/permissions.decorator.ts");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const jwt_auth_guard_1 = __webpack_require__(/*! @common/guards/jwt-auth.guard */ "./src/common/guards/jwt-auth.guard.ts");
+const permissions_guard_1 = __webpack_require__(/*! @common/guards/permissions.guard */ "./src/common/guards/permissions.guard.ts");
+const find_route_query_dto_1 = __webpack_require__(/*! @modules/routes/core/dto/find-route-query.dto */ "./src/modules/routes/core/dto/find-route-query.dto.ts");
+let RoutesController = class RoutesController {
+    constructor(routesService) {
+        this.routesService = routesService;
+    }
+    findAll(query) {
+        return this.routesService.findRoute(query);
+    }
+};
+exports.RoutesController = RoutesController;
+__decorate([
+    (0, common_1.Get)(),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.ROUTE.VIEW),
+    (0, swagger_1.ApiOperation)({ summary: 'Get the route' }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_b = typeof find_route_query_dto_1.FindRouteDto !== "undefined" && find_route_query_dto_1.FindRouteDto) === "function" ? _b : Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], RoutesController.prototype, "findAll", null);
+exports.RoutesController = RoutesController = __decorate([
+    (0, swagger_1.ApiTags)('Routes'),
+    (0, common_1.Controller)({ path: 'routes', version: '1' }),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    __metadata("design:paramtypes", [typeof (_a = typeof routes_service_1.RoutesService !== "undefined" && routes_service_1.RoutesService) === "function" ? _a : Object])
+], RoutesController);
+
+
+/***/ },
+
+/***/ "./src/modules/routes/core/dto/find-route-query.dto.ts"
+/*!*************************************************************!*\
+  !*** ./src/modules/routes/core/dto/find-route-query.dto.ts ***!
+  \*************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FindRouteDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const route_response_interface_1 = __webpack_require__(/*! ../interfaces/route-response.interface */ "./src/modules/routes/core/interfaces/route-response.interface.ts");
+class FindRouteDto {
+}
+exports.FindRouteDto = FindRouteDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 107.6098, minimum: 107.4, maximum: 107.9 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(107.4),
+    (0, class_validator_1.Max)(107.9),
+    __metadata("design:type", Number)
+], FindRouteDto.prototype, "fromLon", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: -6.9147, minimum: -7.1, maximum: -6.8 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(-7.1),
+    (0, class_validator_1.Max)(-6.8),
+    __metadata("design:type", Number)
+], FindRouteDto.prototype, "fromLat", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ format: 'uuid' }),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], FindRouteDto.prototype, "schoolId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: ['fast', 'safe', 'balanced'] }),
+    (0, class_validator_1.IsIn)(['fast', 'safe', 'balanced']),
+    __metadata("design:type", typeof (_a = typeof route_response_interface_1.RouteProfile !== "undefined" && route_response_interface_1.RouteProfile) === "function" ? _a : Object)
+], FindRouteDto.prototype, "profile", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/routes/core/interfaces/route-response.interface.ts"
+/*!************************************************************************!*\
+  !*** ./src/modules/routes/core/interfaces/route-response.interface.ts ***!
+  \************************************************************************/
+(__unused_webpack_module, exports) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ },
+
+/***/ "./src/modules/routes/routes.module.ts"
+/*!*********************************************!*\
+  !*** ./src/modules/routes/routes.module.ts ***!
+  \*********************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RoutesModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const routes_service_1 = __webpack_require__(/*! ./routes.service */ "./src/modules/routes/routes.service.ts");
+const routes_controller_1 = __webpack_require__(/*! ./controllers/v1/routes.controller */ "./src/modules/routes/controllers/v1/routes.controller.ts");
+let RoutesModule = class RoutesModule {
+};
+exports.RoutesModule = RoutesModule;
+exports.RoutesModule = RoutesModule = __decorate([
+    (0, common_1.Module)({
+        controllers: [routes_controller_1.RoutesController],
+        providers: [routes_service_1.RoutesService],
+    })
+], RoutesModule);
+
+
+/***/ },
+
+/***/ "./src/modules/routes/routes.service.ts"
+/*!**********************************************!*\
+  !*** ./src/modules/routes/routes.service.ts ***!
+  \**********************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RoutesService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const prisma_service_1 = __webpack_require__(/*! @common/prisma/prisma.service */ "./src/common/prisma/prisma.service.ts");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+let RoutesService = class RoutesService {
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    async findRoute(query) {
+        const { fromLon, fromLat, schoolId, profile } = query;
+        const [schoolRows, originRows] = await Promise.all([
+            this.prisma.$queryRaw(client_1.Prisma.sql `
+          SELECT s."id", s."name", sap."road_node_id" AS "nodeId"
+          FROM "public"."school" s
+          INNER JOIN "public"."school_access_point" sap
+            ON sap."school_id" = s."id"
+          INNER JOIN "public"."road_node" rn
+            ON rn."id" = sap."road_node_id"
+          WHERE s."id" = ${schoolId}
+            AND s."deleted_at" IS NULL
+            AND sap."deleted_at" IS NULL
+            AND rn."deleted_at" IS NULL
+          ORDER BY sap."snap_distance_m" ASC NULLS LAST, sap."id"
+          LIMIT 1
+        `),
+            this.prisma.$queryRaw(client_1.Prisma.sql `
+          WITH origin AS (
+            SELECT ST_SetSRID(ST_MakePoint(${fromLon}, ${fromLat}), 4326) AS geom
+          )
+          SELECT
+            rn."id" AS "nodeId",
+            ST_Distance(f."geom"::geography, origin."geom"::geography) AS "snapDistanceM"
+          FROM origin
+          INNER JOIN "public"."road_node" rn
+            ON rn."deleted_at" IS NULL
+          INNER JOIN "public"."feature" f
+            ON f."id" = rn."feature_id"
+            AND f."deleted_at" IS NULL
+          ORDER BY f."geom" <-> origin."geom", rn."id"
+          LIMIT 1
+        `),
+        ]);
+        const school = schoolRows[0];
+        if (!school) {
+            throw new common_1.NotFoundException('School not found or it has no active access point');
+        }
+        const origin = originRows[0];
+        if (!origin) {
+            throw new common_1.NotFoundException('No road nodes are available for snapping');
+        }
+        const rows = origin.nodeId === school.nodeId
+            ? []
+            : await this.findRouteSteps(origin.nodeId, school.nodeId, profile);
+        if (origin.nodeId !== school.nodeId && rows.length === 0) {
+            throw new common_1.NotFoundException('No route found between the origin and the selected school');
+        }
+        const steps = rows.map((row) => ({
+            seq: Number(row.seq),
+            roadName: row.roadName,
+            distanceM: Number(row.distanceM),
+            durationS: Number(row.durationS),
+            geometry: row.geometry,
+        }));
+        const geometry = steps.map(({ geometry: stepGeometry, ...properties }) => ({
+            type: 'Feature',
+            properties,
+            geometry: stepGeometry,
+        }));
+        return {
+            profile,
+            school: { id: school.id, name: school.name },
+            distanceM: steps.reduce((total, step) => total + step.distanceM, 0),
+            durationS: steps.reduce((total, step) => total + step.durationS, 0),
+            snapDistanceM: Number(origin.snapDistanceM),
+            steps,
+            geometry: {
+                type: 'FeatureCollection',
+                features: geometry,
+            },
+        };
+    }
+    findRouteSteps(originNodeId, destinationNodeId, profile) {
+        const costColumn = {
+            fast: '"travel_time_s"',
+            safe: '"cost_safe"',
+            balanced: '"cost_balanced"',
+        }[profile];
+        if (!costColumn) {
+            throw new common_1.BadRequestException('Unsupported route profile');
+        }
+        return this.prisma.$queryRaw(client_1.Prisma.sql `
+      WITH who AS (
+        SELECT
+          (
+            SELECT vid
+            FROM (
+              SELECT source AS vid, source_node_id AS nid FROM v_routing
+              UNION
+              SELECT target AS vid, target_node_id AS nid FROM v_routing
+            ) u
+            WHERE nid = ${originNodeId}
+            LIMIT 1
+          ) AS src,
+          (
+            SELECT vid
+            FROM (
+              SELECT source AS vid, source_node_id AS nid FROM v_routing
+              UNION
+              SELECT target AS vid, target_node_id AS nid FROM v_routing
+            ) u
+            WHERE nid = ${destinationNodeId}
+            LIMIT 1
+          ) AS tgt
+      ),
+      route AS (
+        SELECT path."seq", path."node", path."edge", path."cost"
+        FROM who
+        CROSS JOIN LATERAL pgr_dijkstra(
+          'SELECT eid AS id, source, target, ${client_1.Prisma.raw(costColumn)} AS cost FROM v_routing WHERE ${client_1.Prisma.raw(costColumn)} IS NOT NULL AND ${client_1.Prisma.raw(costColumn)} >= 0',
+          who."src",
+          who."tgt",
+          directed := false
+        ) path
+        WHERE path."edge" <> -1
+      )
+      SELECT
+        route."seq" AS "seq",
+        v."road_name" AS "roadName",
+        v."distance_m" AS "distanceM",
+        v."travel_time_s" AS "durationS",
+        route."cost" AS "cost",
+        ST_AsGeoJSON(
+          CASE
+            WHEN route."node" = v."source" THEN v."geom"
+            ELSE ST_Reverse(v."geom")
+          END
+        )::json AS "geometry"
+      FROM route
+      INNER JOIN v_routing v ON v."eid" = route."edge"
+      ORDER BY route."seq"
+    `);
+    }
+};
+exports.RoutesService = RoutesService;
+exports.RoutesService = RoutesService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
+], RoutesService);
 
 
 /***/ },

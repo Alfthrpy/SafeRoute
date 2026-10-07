@@ -24,4 +24,17 @@ export const PERMISSIONS = {
     UPDATE: 'UPDATE_PERMISSION',
     DELETE: 'DELETE_PERMISSION',
   },
+
+  // School Access
+  SCHOOL: {
+    VIEW: 'VIEW_SCHOOL',
+  },
+
+  // Layer Management
+  LAYER: {
+    VIEW: 'VIEW_LAYER',
+    ADD: 'ADD_LAYER',
+    UPDATE: 'UPDATE_LAYER',
+    DELETE: 'DELETE_LAYER',
+  }
 } as const;

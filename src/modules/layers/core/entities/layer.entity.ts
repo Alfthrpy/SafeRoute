@@ -1,6 +1,6 @@
 
 import {Layer as PrismaLayer, Feature, Prisma} from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LayerEntity implements Partial <PrismaLayer> {
     @ApiProperty()
@@ -22,8 +22,5 @@ export class LayerEntity implements Partial <PrismaLayer> {
     constructor(partial: Partial<LayerEntity>) {
         Object.assign(this, partial);
     }
-}
-function ApiPropertyOptional(): (target: LayerEntity, propertyKey: "feature") => void {
-    throw new Error('Function not implemented.');
 }
 

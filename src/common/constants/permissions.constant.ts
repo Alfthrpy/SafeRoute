@@ -36,5 +36,11 @@ export const PERMISSIONS = {
     ADD: 'ADD_LAYER',
     UPDATE: 'UPDATE_LAYER',
     DELETE: 'DELETE_LAYER',
-  }
+  },
+
+  // Route Finding Access
+  ROUTE: {
+    VIEW: 'VIEW_ROUTE',
+  },
+
 } as const;

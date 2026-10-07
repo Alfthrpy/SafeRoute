@@ -21,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LayersModule } from './modules/layers/layers.module';
 import { SchoolsModule } from './modules/schools/schools.module';
+import { RoutesModule } from './modules/routes/routes.module';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { SchoolsModule } from './modules/schools/schools.module';
     UsersModule,
     HealthModule,
     LayersModule,
-    SchoolsModule
+    SchoolsModule,
+    RoutesModule
   ],
   providers: [
     // Global guards

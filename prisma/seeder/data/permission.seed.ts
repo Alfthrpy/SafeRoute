@@ -30,6 +30,15 @@ export const seedPermissions = async (
 
     // School Access
     { name: 'VIEW_SCHOOL', resource: 'SCHOOL', action: 'VIEW', description: 'View school information' },
+
+    // Layer Management
+    { name: 'VIEW_LAYER', resource: 'LAYER', action: 'VIEW', description: 'View layer information' },
+    { name: 'ADD_LAYER', resource: 'LAYER', action: 'ADD', description: 'Create new layer' },
+    { name: 'UPDATE_LAYER', resource: 'LAYER', action: 'UPDATE', description: 'Update layer information' },
+    { name: 'DELETE_LAYER', resource: 'LAYER', action: 'DELETE', description: 'Delete layer' },
+    
+    // Route Finding Access
+    { name: 'VIEW_ROUTE', resource: 'ROUTE', action: 'VIEW', description: 'Access route finding feature' },
   ];
 
   const permissions = await Promise.all(

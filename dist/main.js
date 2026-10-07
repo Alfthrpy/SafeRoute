@@ -38,6 +38,7 @@ const health_module_1 = __webpack_require__(/*! ./modules/health/health.module *
 const users_module_1 = __webpack_require__(/*! ./modules/users/users.module */ "./src/modules/users/users.module.ts");
 const auth_module_1 = __webpack_require__(/*! ./modules/auth/auth.module */ "./src/modules/auth/auth.module.ts");
 const layers_module_1 = __webpack_require__(/*! ./modules/layers/layers.module */ "./src/modules/layers/layers.module.ts");
+const schools_module_1 = __webpack_require__(/*! ./modules/schools/schools.module */ "./src/modules/schools/schools.module.ts");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -53,7 +54,8 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             health_module_1.HealthModule,
-            layers_module_1.LayersModule
+            layers_module_1.LayersModule,
+            schools_module_1.SchoolsModule
         ],
         providers: [
             {
@@ -113,6 +115,15 @@ exports.PERMISSIONS = {
         UPDATE: 'UPDATE_PERMISSION',
         DELETE: 'DELETE_PERMISSION',
     },
+    SCHOOL: {
+        VIEW: 'VIEW_SCHOOL',
+    },
+    LAYER: {
+        VIEW: 'VIEW_LAYER',
+        ADD: 'ADD_LAYER',
+        UPDATE: 'UPDATE_LAYER',
+        DELETE: 'DELETE_LAYER',
+    }
 };
 
 
@@ -1128,7 +1139,7 @@ let AuthController = class AuthController {
             sameSite: 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
-        return authResponse;
+        return { user: authResponse.user };
     }
     async register(registerDto, res) {
         const authResponse = await this.authService.register(registerDto);
@@ -1520,6 +1531,13 @@ const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const layers_service_1 = __webpack_require__(/*! ../../layers.service */ "./src/modules/layers/layers.service.ts");
 const create_layer_dto_1 = __webpack_require__(/*! ../../core/dto/create-layer.dto */ "./src/modules/layers/core/dto/create-layer.dto.ts");
 const update_layer_dto_1 = __webpack_require__(/*! ../../core/dto/update-layer.dto */ "./src/modules/layers/core/dto/update-layer.dto.ts");
+const jwt_auth_guard_1 = __webpack_require__(/*! @common/guards/jwt-auth.guard */ "./src/common/guards/jwt-auth.guard.ts");
+const permissions_guard_1 = __webpack_require__(/*! @common/guards/permissions.guard */ "./src/common/guards/permissions.guard.ts");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const permissions_constant_1 = __webpack_require__(/*! @common/constants/permissions.constant */ "./src/common/constants/permissions.constant.ts");
+const api_response_decorator_1 = __webpack_require__(/*! @common/decorators/api-response.decorator */ "./src/common/decorators/api-response.decorator.ts");
+const layer_entity_1 = __webpack_require__(/*! @modules/layers/core/entities/layer.entity */ "./src/modules/layers/core/entities/layer.entity.ts");
+const permissions_decorator_1 = __webpack_require__(/*! @common/decorators/permissions.decorator */ "./src/common/decorators/permissions.decorator.ts");
 let LayersController = class LayersController {
     constructor(layersService) {
         this.layersService = layersService;
@@ -1543,6 +1561,9 @@ let LayersController = class LayersController {
 exports.LayersController = LayersController;
 __decorate([
     (0, common_1.Post)(),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.LAYER.ADD),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a new user' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(layer_entity_1.LayerEntity),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_b = typeof create_layer_dto_1.CreateLayerDto !== "undefined" && create_layer_dto_1.CreateLayerDto) === "function" ? _b : Object]),
@@ -1550,12 +1571,18 @@ __decorate([
 ], LayersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.LAYER.VIEW),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all layers' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(layer_entity_1.LayerEntity),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], LayersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.LAYER.VIEW),
+    (0, swagger_1.ApiOperation)({ summary: 'Get layer by ID' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(layer_entity_1.LayerEntity),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -1563,6 +1590,9 @@ __decorate([
 ], LayersController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.LAYER.UPDATE),
+    (0, swagger_1.ApiOperation)({ summary: 'Update layer by ID' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(layer_entity_1.LayerEntity),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -1571,13 +1601,18 @@ __decorate([
 ], LayersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.LAYER.DELETE),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete layer by ID' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(layer_entity_1.LayerEntity),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], LayersController.prototype, "remove", null);
 exports.LayersController = LayersController = __decorate([
-    (0, common_1.Controller)('layers'),
+    (0, swagger_1.ApiTags)('Layers'),
+    (0, common_1.Controller)({ path: 'layers', version: '1' }),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
     __metadata("design:paramtypes", [typeof (_a = typeof layers_service_1.LayersService !== "undefined" && layers_service_1.LayersService) === "function" ? _a : Object])
 ], LayersController);
 
@@ -1643,6 +1678,55 @@ const create_layer_dto_1 = __webpack_require__(/*! ./create-layer.dto */ "./src/
 class UpdateLayerDto extends (0, swagger_1.PartialType)(create_layer_dto_1.CreateLayerDto) {
 }
 exports.UpdateLayerDto = UpdateLayerDto;
+
+
+/***/ },
+
+/***/ "./src/modules/layers/core/entities/layer.entity.ts"
+/*!**********************************************************!*\
+  !*** ./src/modules/layers/core/entities/layer.entity.ts ***!
+  \**********************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LayerEntity = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+class LayerEntity {
+    constructor(partial) {
+        Object.assign(this, partial);
+    }
+}
+exports.LayerEntity = LayerEntity;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], LayerEntity.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], LayerEntity.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], LayerEntity.prototype, "code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], LayerEntity.prototype, "geometryType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", Array)
+], LayerEntity.prototype, "feature", void 0);
 
 
 /***/ },
@@ -1773,6 +1857,448 @@ exports.LayersService = LayersService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
 ], LayersService);
+
+
+/***/ },
+
+/***/ "./src/modules/schools/controllers/v1/schools.controller.ts"
+/*!******************************************************************!*\
+  !*** ./src/modules/schools/controllers/v1/schools.controller.ts ***!
+  \******************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolsController = void 0;
+const permissions_decorator_1 = __webpack_require__(/*! @common/decorators/permissions.decorator */ "./src/common/decorators/permissions.decorator.ts");
+const api_response_decorator_1 = __webpack_require__(/*! @common/decorators/api-response.decorator */ "./src/common/decorators/api-response.decorator.ts");
+const pagination_dto_1 = __webpack_require__(/*! @common/dto/pagination.dto */ "./src/common/dto/pagination.dto.ts");
+const jwt_auth_guard_1 = __webpack_require__(/*! @common/guards/jwt-auth.guard */ "./src/common/guards/jwt-auth.guard.ts");
+const permissions_guard_1 = __webpack_require__(/*! @common/guards/permissions.guard */ "./src/common/guards/permissions.guard.ts");
+const create_school_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/create-school.dto */ "./src/modules/schools/core/dto/create-school.dto.ts");
+const school_query_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/school-query.dto */ "./src/modules/schools/core/dto/school-query.dto.ts");
+const update_school_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/update-school.dto */ "./src/modules/schools/core/dto/update-school.dto.ts");
+const schools_service_1 = __webpack_require__(/*! @modules/schools/schools.service */ "./src/modules/schools/schools.service.ts");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const permissions_constant_1 = __webpack_require__(/*! @common/constants/permissions.constant */ "./src/common/constants/permissions.constant.ts");
+let SchoolsController = class SchoolsController {
+    constructor(schoolsService) {
+        this.schoolsService = schoolsService;
+    }
+    create(createSchoolDto) {
+        return this.schoolsService.create(createSchoolDto);
+    }
+    findAll(query) {
+        return this.schoolsService.findAll(query);
+    }
+    findOne(id) {
+        return this.schoolsService.findOne(+id);
+    }
+    update(id, updateSchoolDto) {
+        return this.schoolsService.update(+id, updateSchoolDto);
+    }
+    remove(id) {
+        return this.schoolsService.remove(+id);
+    }
+};
+exports.SchoolsController = SchoolsController;
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_b = typeof create_school_dto_1.CreateSchoolDto !== "undefined" && create_school_dto_1.CreateSchoolDto) === "function" ? _b : Object]),
+    __metadata("design:returntype", void 0)
+], SchoolsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.SCHOOL.VIEW),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all schools with pagination and filters' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)((pagination_dto_1.PaginatedResponseDto)),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_c = typeof school_query_dto_1.SchoolQueryDto !== "undefined" && school_query_dto_1.SchoolQueryDto) === "function" ? _c : Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], SchoolsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SchoolsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_e = typeof update_school_dto_1.UpdateSchoolDto !== "undefined" && update_school_dto_1.UpdateSchoolDto) === "function" ? _e : Object]),
+    __metadata("design:returntype", void 0)
+], SchoolsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SchoolsController.prototype, "remove", null);
+exports.SchoolsController = SchoolsController = __decorate([
+    (0, swagger_1.ApiTags)('Schools'),
+    (0, common_1.Controller)({ path: 'schools', version: '1' }),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    __metadata("design:paramtypes", [typeof (_a = typeof schools_service_1.SchoolsService !== "undefined" && schools_service_1.SchoolsService) === "function" ? _a : Object])
+], SchoolsController);
+
+
+/***/ },
+
+/***/ "./src/modules/schools/core/dto/create-school.dto.ts"
+/*!***********************************************************!*\
+  !*** ./src/modules/schools/core/dto/create-school.dto.ts ***!
+  \***********************************************************/
+(__unused_webpack_module, exports) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CreateSchoolDto = void 0;
+class CreateSchoolDto {
+}
+exports.CreateSchoolDto = CreateSchoolDto;
+
+
+/***/ },
+
+/***/ "./src/modules/schools/core/dto/school-query.dto.ts"
+/*!**********************************************************!*\
+  !*** ./src/modules/schools/core/dto/school-query.dto.ts ***!
+  \**********************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolQueryDto = void 0;
+const pagination_dto_1 = __webpack_require__(/*! @common/dto/pagination.dto */ "./src/common/dto/pagination.dto.ts");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+class SchoolQueryDto extends pagination_dto_1.PaginationDto {
+}
+exports.SchoolQueryDto = SchoolQueryDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'SMAK DAGO' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SchoolQueryDto.prototype, "search", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/schools/core/dto/update-school.dto.ts"
+/*!***********************************************************!*\
+  !*** ./src/modules/schools/core/dto/update-school.dto.ts ***!
+  \***********************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UpdateSchoolDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const create_school_dto_1 = __webpack_require__(/*! ./create-school.dto */ "./src/modules/schools/core/dto/create-school.dto.ts");
+class UpdateSchoolDto extends (0, swagger_1.PartialType)(create_school_dto_1.CreateSchoolDto) {
+}
+exports.UpdateSchoolDto = UpdateSchoolDto;
+
+
+/***/ },
+
+/***/ "./src/modules/schools/core/entities/school.entity.ts"
+/*!************************************************************!*\
+  !*** ./src/modules/schools/core/entities/school.entity.ts ***!
+  \************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolEntity = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+class SchoolEntity {
+    constructor(partial) {
+        Object.assign(this, partial);
+    }
+}
+exports.SchoolEntity = SchoolEntity;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "npsn", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "level", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "address", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "kelurahan", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "kecamatan", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], SchoolEntity.prototype, "featureId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], SchoolEntity.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], SchoolEntity.prototype, "updated_at", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], SchoolEntity.prototype, "deleted_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: Object }),
+    __metadata("design:type", Object)
+], SchoolEntity.prototype, "feature", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/schools/core/helpers/school-transform.helper.ts"
+/*!*********************************************************************!*\
+  !*** ./src/modules/schools/core/helpers/school-transform.helper.ts ***!
+  \*********************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolTransformHelper = void 0;
+const school_entity_1 = __webpack_require__(/*! ../entities/school.entity */ "./src/modules/schools/core/entities/school.entity.ts");
+class SchoolTransformHelper {
+    static toEntity(school) {
+        return new school_entity_1.SchoolEntity({
+            id: school.id,
+            npsn: school.npsn,
+            name: school.name,
+            level: school.level,
+            status: school.status,
+            address: school.address,
+            kelurahan: school.kelurahan,
+            kecamatan: school.kecamatan,
+            featureId: school.featureId,
+            created_at: school.created_at,
+            updated_at: school.updated_at,
+            deleted_at: school.deleted_at,
+            feature: {
+                id: school.feature_id,
+                layerId: school.layerId,
+                geom: school.geom,
+                sourceId: school.sourceId,
+                created_at: school.feature_created_at,
+                updated_at: school.feature_updated_at,
+                deleted_at: school.feature_deleted_at,
+            },
+        });
+    }
+    static toEntities(schools) {
+        return schools.map((school) => this.toEntity(school));
+    }
+}
+exports.SchoolTransformHelper = SchoolTransformHelper;
+
+
+/***/ },
+
+/***/ "./src/modules/schools/schools.module.ts"
+/*!***********************************************!*\
+  !*** ./src/modules/schools/schools.module.ts ***!
+  \***********************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolsModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const schools_service_1 = __webpack_require__(/*! ./schools.service */ "./src/modules/schools/schools.service.ts");
+const schools_controller_1 = __webpack_require__(/*! ./controllers/v1/schools.controller */ "./src/modules/schools/controllers/v1/schools.controller.ts");
+let SchoolsModule = class SchoolsModule {
+};
+exports.SchoolsModule = SchoolsModule;
+exports.SchoolsModule = SchoolsModule = __decorate([
+    (0, common_1.Module)({
+        controllers: [schools_controller_1.SchoolsController],
+        providers: [schools_service_1.SchoolsService],
+    })
+], SchoolsModule);
+
+
+/***/ },
+
+/***/ "./src/modules/schools/schools.service.ts"
+/*!************************************************!*\
+  !*** ./src/modules/schools/schools.service.ts ***!
+  \************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SchoolsService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+const prisma_service_1 = __webpack_require__(/*! @common/prisma/prisma.service */ "./src/common/prisma/prisma.service.ts");
+const school_transform_helper_1 = __webpack_require__(/*! ./core/helpers/school-transform.helper */ "./src/modules/schools/core/helpers/school-transform.helper.ts");
+let SchoolsService = class SchoolsService {
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    create(createSchoolDto) {
+        return 'This action adds a new school';
+    }
+    async findAll(query) {
+        const { search, page = 1, limit = 10 } = query;
+        const skip = (page - 1) * limit;
+        const searchFilter = search
+            ? client_1.Prisma.sql `AND s."name" ILIKE ${`%${search}%`}`
+            : client_1.Prisma.empty;
+        const activeSchoolFilter = client_1.Prisma.sql `
+      s."deleted_at" IS NULL
+      AND f."deleted_at" IS NULL
+      ${searchFilter}
+    `;
+        const [schools, countRows] = await Promise.all([
+            this.prisma.$queryRaw(client_1.Prisma.sql `
+        SELECT
+          s."id",
+          s."npsn",
+          s."name",
+          s."level",
+          s."status",
+          s."address",
+          s."kelurahan",
+          s."kecamatan",
+          s."feature_id" AS "featureId",
+          s."created_at",
+          s."updated_at",
+          s."deleted_at",
+          f."id" AS "feature_id",
+          f."layer_id" AS "layerId",
+          ST_AsGeoJSON(f."geom")::json AS "geom",
+          f."source_id" AS "sourceId",
+          f."created_at" AS "feature_created_at",
+          f."updated_at" AS "feature_updated_at",
+          f."deleted_at" AS "feature_deleted_at"
+        FROM "public"."school" s
+        INNER JOIN "public"."feature" f
+          ON f."id" = s."feature_id"
+        WHERE ${activeSchoolFilter}
+        ORDER BY s."created_at" DESC
+        LIMIT ${limit}
+        OFFSET ${skip}
+      `),
+            this.prisma.$queryRaw(client_1.Prisma.sql `
+        SELECT COUNT(*) AS "total"
+        FROM "public"."school" s
+        INNER JOIN "public"."feature" f
+          ON f."id" = s."feature_id"
+        WHERE ${activeSchoolFilter}
+      `),
+        ]);
+        const total = Number(countRows[0].total);
+        if (total === 0) {
+            throw new common_1.NotFoundException('No schools found');
+        }
+        return {
+            data: school_transform_helper_1.SchoolTransformHelper.toEntities(schools),
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+    findOne(id) {
+        return `This action returns a #${id} school`;
+    }
+    update(id, updateSchoolDto) {
+        return `This action updates a #${id} school`;
+    }
+    remove(id) {
+        return `This action removes a #${id} school`;
+    }
+};
+exports.SchoolsService = SchoolsService;
+exports.SchoolsService = SchoolsService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
+], SchoolsService);
 
 
 /***/ },

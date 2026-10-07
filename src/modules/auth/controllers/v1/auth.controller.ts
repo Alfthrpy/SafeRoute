@@ -25,7 +25,7 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponseDto> {
+  ): Promise<Partial<AuthResponseDto>> {
     const authResponse = await this.authService.login(loginDto);
     res.cookie('Authentication', authResponse.access_token, {
       httpOnly: true,
@@ -33,7 +33,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    return authResponse;
+    return {user : authResponse.user};
   }
 
   @Public()

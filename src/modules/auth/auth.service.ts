@@ -21,7 +21,7 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto): Promise<Partial<AuthResponseDto>> {
     const { email, password } = loginDto;
 
     // Find user with position and permissions

@@ -15,6 +15,7 @@ import { UserQueryDto } from './core/dto/user-query.dto';
 import { UserEntity } from './core/entities/user.entity';
 import { UserTransformHelper } from './core/helpers/user-transform.helper';
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
+import { SchoolEntity } from '@modules/schools/core/entities/school.entity';
 
 @Injectable()
 export class UsersService {
@@ -151,6 +152,77 @@ export class UsersService {
     }
 
     return UserTransformHelper.toEntity(user);
+  }
+
+  async addFavoriteSchool(userId: string, schoolId: string): Promise<UserEntity> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deleted_at: null },
+    })
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // Check if the school is already in the user's favorites
+    const existingFavorite = await this.prisma.userFavoriteSchool.findFirst({
+      where: { user_id: userId, school_id: schoolId },
+    });
+
+    if (existingFavorite) {
+      throw new ConflictException('School is already in user favorites');
+    }
+
+    // Add the school to the user's favorites
+    await this.prisma.userFavoriteSchool.create({
+      data: {
+        user_id: userId,
+        school_id: schoolId,
+      },
+    });
+
+    // Return the updated user with favorite schools
+    const updatedUser = await this.prisma.user.findFirst({
+      where: { id: userId, deleted_at: null },
+      include: {
+        position: {
+          include: {
+            position_permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+        favorite_schools: {
+          include: {
+            school: true,
+          },
+        },
+      },
+    });
+
+    return UserTransformHelper.toEntity(updatedUser);
+  }
+
+  async getFavoriteSchools(
+    userId: string,
+  ): Promise<Prisma.UserFavoriteSchoolGetPayload<{ include: { school: true } }>[]> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deleted_at: null },
+      include: {
+        favorite_schools: {
+          include: {
+            school: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return user.favorite_schools;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {

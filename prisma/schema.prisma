@@ -25,6 +25,8 @@ model User {
   position_id String
   position    Position @relation(fields: [position_id], references: [id])
 
+  favorite_schools UserFavoriteSchool[]
+
   @@map("users")
   @@schema("public")
 }
@@ -201,8 +203,24 @@ model School {
 
   feature      Feature             @relation(fields: [featureId], references: [id])
   accessPoints SchoolAccessPoint[]
+  favorited_by UserFavoriteSchool[]
 
   @@map("school")
+  @@schema("public")
+}
+
+model UserFavoriteSchool {
+  id         String   @id @default(uuid())
+  user_id    String
+  school_id  String
+  created_at DateTime @default(now())
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  school School @relation(fields: [school_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, school_id])
+  @@index([school_id])
+  @@map("user_favorite_schools")
   @@schema("public")
 }
 

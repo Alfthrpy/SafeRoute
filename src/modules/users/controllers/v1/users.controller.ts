@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiCookieAuth, ApiParam } from '@nestjs/swagger';
+import { GetUser } from '@common/decorators/get-user.decorator';
 import { UsersService } from '../../users.service';
 import { CreateUserDto } from '@modules/users/core/dto/create-user.dto';
 import { UpdateUserDto } from '@modules/users/core/dto/update-user.dto';
@@ -20,6 +21,7 @@ import { ChangePositionDto } from '@modules/users/core/dto/change-position.dto';
 import { ManagePermissionsDto } from '@modules/users/core/dto/manage-permissions.dto';
 import { UserQueryDto } from '@modules/users/core/dto/user-query.dto';
 import { UserEntity } from '../../core/entities/user.entity';
+import { FavoriteSchoolResponseDto } from '../../core/dto/favorite-school-response.dto';
 import { Permissions } from '@common/decorators/permissions.decorator';
 import { PERMISSIONS } from '@common/constants/permissions.constant';
 import {
@@ -51,6 +53,56 @@ export class UsersController {
   async findAll(@Query() query: UserQueryDto): Promise<PaginatedResponseDto<UserEntity>> {
     return this.usersService.findAll(query);
   }
+
+  @Get('favorite-schools')
+  @Permissions(PERMISSIONS.USER.MANAGE_FAVORITE_SCHOOLS)
+  @ApiOperation({ summary: 'Get all favorited schools' })
+  @ApiSuccessArrayResponse(FavoriteSchoolResponseDto, {
+    statusCode: 200,
+    message: 'Data retrieved successfully',
+    data: [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        user_id: '550e8400-e29b-41d4-a716-446655440004',
+        school_id: '550e8400-e29b-41d4-a716-446655440001',
+        created_at: '2026-10-08T03:15:00.000Z',
+        school: {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          npsn: '20202020',
+          name: 'SMA Negeri 1 Bandung',
+          level: 'SMA',
+          status: 'Negeri',
+          address: 'Jl. Ir. H. Juanda No. 93, Bandung',
+          kelurahan: 'Lebakgede',
+          kecamatan: 'Coblong',
+          featureId: '550e8400-e29b-41d4-a716-446655440002',
+          created_at: '2026-10-08T03:00:00.000Z',
+          updated_at: '2026-10-08T03:00:00.000Z',
+          deleted_at: null,
+        },
+      },
+    ],
+    errors: null,
+  })
+  async getFavoritedSchools(
+    @GetUser('userId') userId: string,
+  ): Promise<FavoriteSchoolResponseDto[]> {
+    return this.usersService.getFavoriteSchools(userId);
+  }
+
+  @Post('favorite-schools/:schoolId')
+  @Permissions(PERMISSIONS.USER.MANAGE_FAVORITE_SCHOOLS)
+  @ApiOperation({ summary: 'Add a school to user favorites' })
+  @ApiParam({ name: 'schoolId', type: String, format: 'uuid' })
+  @ApiSuccessResponse(UserEntity)
+  async addFavoriteSchool(
+    @Param('schoolId', ParseUUIDPipe) schoolId: string,
+    @GetUser('userId') userId: string,
+  ): Promise<UserEntity> {
+    return this.usersService.addFavoriteSchool(userId, schoolId);
+  }
+
+
 
   @Get(':id')
   @Permissions(PERMISSIONS.USER.VIEW)

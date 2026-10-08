@@ -42,6 +42,7 @@ export class SchoolsController {
     return this.schoolsService.update(+id, updateSchoolDto);
   }
 
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.schoolsService.remove(+id);

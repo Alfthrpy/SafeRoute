@@ -1,5 +1,10 @@
 export type RouteProfile = 'fast' | 'safe' | 'balanced';
 
+export interface RouteGeoJsonPoint {
+  type: 'Point';
+  coordinates: number[];
+}
+
 export interface RouteGeoJsonGeometry {
   type: 'LineString' | 'MultiLineString';
   coordinates: number[][] | number[][][];
@@ -21,7 +26,7 @@ export interface RouteGeoJsonFeature {
 
 export interface RouteResponseDto {
   profile: RouteProfile;
-  school: { id: string; name: string };
+  school: { id: string; name: string; location: RouteGeoJsonPoint };
   distanceM: number;
   durationS: number;
   snapDistanceM: number;

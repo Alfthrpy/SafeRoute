@@ -8,10 +8,10 @@ import { PrismaService } from '@common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import {
   RouteGeoJsonFeature,
+  RouteGeoJsonPoint,
   RouteProfile,
   RouteResponseDto,
   RouteStepDto,
-  RouteStepRow,
 } from './core/interfaces/route-response.interface';
 
 @Injectable()
@@ -21,14 +21,18 @@ export class RoutesService {
   async findRoute(query: FindRouteDto): Promise<RouteResponseDto> {
     const { fromLon, fromLat, schoolId, profile } = query;
     const [schoolRows, originRows] = await Promise.all([
-      this.prisma.$queryRaw<{ id: string; name: string; nodeId: string }[]>(
+      this.prisma.$queryRaw<{ id: string; name: string; nodeId: string; location: object }[]>(
         Prisma.sql`
-          SELECT s."id", s."name", sap."road_node_id" AS "nodeId"
+          SELECT s."id", s."name", sap."road_node_id" AS "nodeId",
+            ST_AsGeoJSON(sf."geom")::json AS "location"
           FROM "public"."school" s
           INNER JOIN "public"."school_access_point" sap
             ON sap."school_id" = s."id"
           INNER JOIN "public"."road_node" rn
             ON rn."id" = sap."road_node_id"
+          INNER JOIN "public"."feature" sf
+            ON sf."id" = s."feature_id"
+            AND sf."deleted_at" IS NULL
           WHERE s."id" = ${schoolId}
             AND s."deleted_at" IS NULL
             AND sap."deleted_at" IS NULL
@@ -97,7 +101,7 @@ export class RoutesService {
 
     return {
       profile,
-      school: { id: school.id, name: school.name },
+      school: { id: school.id, name: school.name, location: school.location as RouteGeoJsonPoint },
       distanceM: steps.reduce((total, step) => total + step.distanceM, 0),
       durationS: steps.reduce((total, step) => total + step.durationS, 0),
       snapDistanceM: Number(origin.snapDistanceM),
@@ -176,6 +180,15 @@ export class RoutesService {
       ORDER BY route."seq"
     `);
   }
+}
+
+interface RouteStepRow {
+  seq: number;
+  roadName: string | null;
+  distanceM: number;
+  durationS: number;
+  cost: number;
+  geometry: RouteStepDto['geometry'];
 }
 
 

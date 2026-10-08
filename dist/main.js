@@ -57,7 +57,7 @@ exports.AppModule = AppModule = __decorate([
             health_module_1.HealthModule,
             layers_module_1.LayersModule,
             schools_module_1.SchoolsModule,
-            routes_module_1.RoutesModule
+            routes_module_1.RoutesModule,
         ],
         providers: [
             {
@@ -341,6 +341,258 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     __metadata("design:type", Object)
 ], PaginatedResponseDto.prototype, "meta", void 0);
+
+
+/***/ },
+
+/***/ "./src/common/email/email.module.ts"
+/*!******************************************!*\
+  !*** ./src/common/email/email.module.ts ***!
+  \******************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EmailModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const email_service_1 = __webpack_require__(/*! ./email.service */ "./src/common/email/email.service.ts");
+let EmailModule = class EmailModule {
+};
+exports.EmailModule = EmailModule;
+exports.EmailModule = EmailModule = __decorate([
+    (0, common_1.Module)({
+        providers: [email_service_1.EmailService],
+        exports: [email_service_1.EmailService],
+    })
+], EmailModule);
+
+
+/***/ },
+
+/***/ "./src/common/email/email.service.ts"
+/*!*******************************************!*\
+  !*** ./src/common/email/email.service.ts ***!
+  \*******************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var EmailService_1;
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EmailService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const resend_1 = __webpack_require__(/*! resend */ "resend");
+let EmailService = EmailService_1 = class EmailService {
+    constructor(configService) {
+        this.logger = new common_1.Logger(EmailService_1.name);
+        this.resend = new resend_1.Resend(configService.getOrThrow('RESEND_API_KEY'));
+        this.from = configService.getOrThrow('MAIL_FROM');
+    }
+    async sendEmail(to, subject, body, text) {
+        try {
+            const { data, error } = await this.resend.emails.send({
+                from: this.from,
+                to,
+                subject,
+                html: body,
+                ...(text && { text }),
+            });
+            if (error) {
+                throw new Error(`${error.name} - ${error.message}`);
+            }
+            this.logger.log(`Email terkirim (id: ${data?.id})`);
+        }
+        catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown email provider error';
+            const stack = error instanceof Error ? error.stack : undefined;
+            this.logger.error(`Gagal mengirim email: ${detail}`, stack);
+            throw new common_1.InternalServerErrorException('Email belum bisa dikirim.');
+        }
+    }
+    async sendForgotPasswordEmail(to, firstName, resetUrl, expiresInMinutes = 30) {
+        await this.sendEmail(to, 'Buat kata sandi baru untuk SafeRoute', this.buildForgotPasswordHtml(firstName, resetUrl, expiresInMinutes), this.buildForgotPasswordText(firstName, resetUrl, expiresInMinutes));
+    }
+    escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    buildForgotPasswordText(firstName, resetUrl, expiresInMinutes) {
+        return [
+            `Halo, ${firstName}!`,
+            '',
+            'Kami menerima permintaan untuk membuat kata sandi baru untuk akun SafeRoute-mu.',
+            'Buka tautan ini untuk membuatnya:',
+            resetUrl,
+            '',
+            `Tautan ini berlaku ${expiresInMinutes} menit dan hanya bisa dipakai satu kali.`,
+            '',
+            'Bukan kamu yang meminta? Abaikan saja email ini. Kata sandimu tidak akan berubah.',
+            'Minta orang tua atau wali menemanimu ya.',
+            '',
+            '— SafeRoute',
+        ].join('\n');
+    }
+    buildForgotPasswordHtml(firstName, resetUrl, expiresInMinutes) {
+        const name = this.escapeHtml(firstName);
+        const url = this.escapeHtml(resetUrl);
+        const headline = "font-family:'Fredoka','Trebuchet MS','Segoe UI',Arial,sans-serif;";
+        const body = "font-family:'Nunito','Segoe UI',Arial,sans-serif;";
+        return `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light only" />
+  <title>Buat kata sandi baru</title>
+  <!-- Font hanya tampil di aplikasi email yang mendukung; lainnya memakai font cadangan -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body style="margin:0;padding:0;background-color:#F9FAFB;">
+  <!-- Teks pratinjau (muncul di daftar inbox) -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+    Ketuk tombol untuk membuat kata sandi baru. Berlaku ${expiresInMinutes} menit.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F9FAFB;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+
+        <!-- Kartu utama (efek chunky: border bawah tebal) -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:560px;background-color:#FFFFFF;border:2px solid #E5E7EB;border-bottom:6px solid #D1D5DB;border-radius:28px;overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background-color:#2563EB;padding:28px 24px;border-radius:26px 26px 0 0;">
+              <div style="${headline}font-size:28px;line-height:1.25;font-weight:700;color:#FFFFFF;">
+                 SafeRoute
+              </div>
+              <div style="${body}font-size:16px;line-height:1.5;font-weight:600;color:#FFFFFF;padding-top:4px;">
+                Cari sekolah, lihat jalannya.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Isi -->
+          <tr>
+            <td style="padding:32px 24px 8px 24px;" align="center">
+              <!-- Lingkaran ikon kuning -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" valign="middle" width="72" height="72"
+                      style="width:72px;height:72px;background-color:#FACC15;border:3px solid #92400E;border-radius:36px;font-size:34px;line-height:72px;">
+                    🔑
+                  </td>
+                </tr>
+              </table>
+
+              <h1 style="${headline}margin:20px 0 8px 0;font-size:28px;line-height:1.25;font-weight:700;color:#1F2937;">
+                Lupa kata sandi? Tenang ya!
+              </h1>
+              <p style="${body}margin:0 0 8px 0;font-size:18px;line-height:1.6;font-weight:700;color:#1F2937;">
+                Halo, ${name}!
+              </p>
+              <p style="${body}margin:0 0 24px 0;font-size:16px;line-height:1.6;color:#4B5563;">
+                Kami menerima permintaan untuk membuat kata sandi baru.
+                Ketuk tombol di bawah ini ya.
+              </p>
+
+              <!-- Tombol utama -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a href="${url}" target="_blank"
+                       style="${headline}display:block;max-width:360px;background-color:#2563EB;color:#FFFFFF;font-size:18px;line-height:24px;font-weight:600;text-decoration:none;text-align:center;padding:16px 24px;border-radius:20px;border-bottom:5px solid #1D4ED8;">
+                      🔒&nbsp; Buat kata sandi baru
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Kartu info -->
+          <tr>
+            <td style="padding:24px 24px 8px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background-color:#EFF6FF;border:2px solid #1D4ED8;border-radius:20px;">
+                <tr>
+                  <td style="padding:16px;${body}font-size:14px;line-height:1.5;font-weight:600;color:#1F2937;">
+                    ℹ️&nbsp; Tombol ini berlaku <strong>${expiresInMinutes} menit</strong> dan hanya bisa dipakai satu kali.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Bukan kamu? -->
+          <tr>
+            <td style="padding:16px 24px 8px 24px;">
+              <p style="${body}margin:0 0 8px 0;font-size:16px;line-height:1.6;color:#1F2937;">
+                <strong>Bukan kamu yang meminta?</strong> Abaikan saja email ini.
+                Kata sandimu tidak akan berubah.
+              </p>
+              <p style="${body}margin:0;font-size:16px;line-height:1.6;color:#4B5563;">
+                Minta orang tua atau wali menemanimu ya.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Tautan cadangan -->
+          <tr>
+            <td style="padding:16px 24px 28px 24px;">
+              <p style="${body}margin:0 0 4px 0;font-size:14px;line-height:1.5;font-weight:600;color:#4B5563;">
+                Tombolnya tidak bisa diketuk? Salin tautan ini ke browser:
+              </p>
+              <p style="${body}margin:0;font-size:14px;line-height:1.5;word-break:break-all;">
+                <a href="${url}" target="_blank" style="color:#1D4ED8;text-decoration:underline;">${url}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+          <tr>
+            <td align="center" style="padding:16px 8px;${body}font-size:14px;line-height:1.5;color:#4B5563;">
+              Email ini dikirim otomatis oleh SafeRoute. Mohon jangan dibalas.
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+    }
+};
+exports.EmailService = EmailService;
+exports.EmailService = EmailService = EmailService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], EmailService);
 
 
 /***/ },
@@ -873,6 +1125,11 @@ exports.validationSchema = Joi.object({
     JWT_EXPIRATION: Joi.string().default('7d'),
     JWT_REFRESH_SECRET: Joi.string().required(),
     JWT_REFRESH_EXPIRATION: Joi.string().default('30d'),
+    RESEND_API_KEY: Joi.string().trim().required(),
+    MAIL_FROM: Joi.string().trim().required(),
+    FRONTEND_URL: Joi.string()
+        .uri({ scheme: ['http', 'https'] })
+        .required(),
     CORS_ORIGIN: Joi.string().default('*'),
     API_PREFIX: Joi.string().default('api'),
     SWAGGER_ENABLED: Joi.boolean().default(true),
@@ -940,12 +1197,14 @@ const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const auth_service_1 = __webpack_require__(/*! ./auth.service */ "./src/modules/auth/auth.service.ts");
 const auth_controller_1 = __webpack_require__(/*! ./controllers/v1/auth.controller */ "./src/modules/auth/controllers/v1/auth.controller.ts");
 const jwt_strategy_1 = __webpack_require__(/*! ./core/strategies/jwt.strategy */ "./src/modules/auth/core/strategies/jwt.strategy.ts");
+const email_module_1 = __webpack_require__(/*! @common/email/email.module */ "./src/common/email/email.module.ts");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            email_module_1.EmailModule,
             passport_1.PassportModule.register({ defaultStrategy: 'jwt' }),
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
@@ -983,7 +1242,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c;
+var AuthService_1;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -991,11 +1251,15 @@ const jwt_1 = __webpack_require__(/*! @nestjs/jwt */ "@nestjs/jwt");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const prisma_service_1 = __webpack_require__(/*! @common/prisma/prisma.service */ "./src/common/prisma/prisma.service.ts");
 const password_util_1 = __webpack_require__(/*! @common/utils/password.util */ "./src/common/utils/password.util.ts");
-let AuthService = class AuthService {
-    constructor(prisma, jwtService, configService) {
+const email_service_1 = __webpack_require__(/*! @common/email/email.service */ "./src/common/email/email.service.ts");
+const crypto_1 = __webpack_require__(/*! crypto */ "crypto");
+let AuthService = AuthService_1 = class AuthService {
+    constructor(prisma, jwtService, configService, emailService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.configService = configService;
+        this.emailService = emailService;
+        this.logger = new common_1.Logger(AuthService_1.name);
     }
     async login(loginDto) {
         const { email, password } = loginDto;
@@ -1113,11 +1377,85 @@ let AuthService = class AuthService {
             },
         };
     }
+    async forgotPassword(email) {
+        const emailExists = await this.prisma.user.findUnique({ where: { email } });
+        if (!emailExists) {
+            return;
+        }
+        const resetToken = (0, crypto_1.randomBytes)(32).toString('hex');
+        const hashedResetToken = this.hashResetToken(resetToken);
+        const frontendUrl = this.configService
+            .getOrThrow('FRONTEND_URL')
+            .replace(/\/+$/, '');
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+        await this.prisma.resetToken.create({
+            data: {
+                user_id: emailExists.id,
+                token: hashedResetToken,
+                expires_at: new Date(Date.now() + 60 * 60 * 1000),
+            },
+        });
+        try {
+            await this.emailService.sendForgotPasswordEmail(emailExists.email, emailExists.first_name, resetUrl, 60);
+        }
+        catch (error) {
+            if (!(error instanceof common_1.InternalServerErrorException)) {
+                throw error;
+            }
+            try {
+                await this.prisma.resetToken.deleteMany({
+                    where: { token: hashedResetToken },
+                });
+            }
+            catch (cleanupError) {
+                const detail = cleanupError instanceof Error
+                    ? cleanupError.message
+                    : 'Unknown database error';
+                const stack = cleanupError instanceof Error ? cleanupError.stack : undefined;
+                this.logger.error(`Failed to remove unsent password reset token: ${detail}`, stack);
+            }
+        }
+    }
+    async resetPassword(token, newPassword) {
+        const hashedToken = this.hashResetToken(token);
+        const existingToken = await this.prisma.resetToken.findFirst({
+            where: {
+                token: hashedToken,
+            },
+            select: { id: true, user_id: true, expires_at: true },
+        });
+        if (!existingToken || existingToken.expires_at <= new Date()) {
+            throw new common_1.BadRequestException('Invalid or expired reset token');
+        }
+        const hashedPassword = await password_util_1.PasswordUtil.hash(newPassword);
+        await this.prisma.$transaction(async (transaction) => {
+            const claimedToken = await transaction.resetToken.deleteMany({
+                where: {
+                    id: existingToken.id,
+                    token: hashedToken,
+                    expires_at: { gt: new Date() },
+                },
+            });
+            if (claimedToken.count !== 1) {
+                throw new common_1.BadRequestException('Invalid or expired reset token');
+            }
+            await transaction.user.update({
+                where: { id: existingToken.user_id },
+                data: { password: hashedPassword },
+            });
+            await transaction.resetToken.deleteMany({
+                where: { user_id: existingToken.user_id },
+            });
+        });
+    }
+    hashResetToken(token) {
+        return (0, crypto_1.createHash)('sha256').update(token).digest('hex');
+    }
 };
 exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object, typeof (_b = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _b : Object, typeof (_c = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object, typeof (_b = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _b : Object, typeof (_c = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _c : Object, typeof (_d = typeof email_service_1.EmailService !== "undefined" && email_service_1.EmailService) === "function" ? _d : Object])
 ], AuthService);
 
 
@@ -1142,7 +1480,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1151,6 +1489,8 @@ const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const auth_service_1 = __webpack_require__(/*! ../../auth.service */ "./src/modules/auth/auth.service.ts");
 const login_dto_1 = __webpack_require__(/*! ../../core/dto/login.dto */ "./src/modules/auth/core/dto/login.dto.ts");
 const register_dto_1 = __webpack_require__(/*! ../../core/dto/register.dto */ "./src/modules/auth/core/dto/register.dto.ts");
+const forgot_password_dto_1 = __webpack_require__(/*! ../../core/dto/forgot-password.dto */ "./src/modules/auth/core/dto/forgot-password.dto.ts");
+const reset_password_dto_1 = __webpack_require__(/*! ../../core/dto/reset-password.dto */ "./src/modules/auth/core/dto/reset-password.dto.ts");
 const auth_response_dto_1 = __webpack_require__(/*! ../../core/dto/auth-response.dto */ "./src/modules/auth/core/dto/auth-response.dto.ts");
 const public_decorator_1 = __webpack_require__(/*! @common/decorators/public.decorator */ "./src/common/decorators/public.decorator.ts");
 const api_response_decorator_1 = __webpack_require__(/*! @common/decorators/api-response.decorator */ "./src/common/decorators/api-response.decorator.ts");
@@ -1189,6 +1529,14 @@ let AuthController = class AuthController {
         });
         return { message: 'Logout successful' };
     }
+    async forgotPassword(forgotPasswordDto) {
+        await this.authService.forgotPassword(forgotPasswordDto.email);
+        return { message: 'If the email is registered, a password reset link will be sent' };
+    }
+    async resetPassword(resetPasswordDto) {
+        await this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
+        return { message: 'Password reset successful' };
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -1226,6 +1574,32 @@ __decorate([
     __metadata("design:paramtypes", [typeof (_h = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _h : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('forgot-password'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Forgot password' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'If the email is registered, a password reset link will be sent',
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_j = typeof forgot_password_dto_1.ForgotPasswordDto !== "undefined" && forgot_password_dto_1.ForgotPasswordDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('reset-password'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Reset password' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Password reset successful' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid or expired reset token' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_k = typeof reset_password_dto_1.ResetPasswordDto !== "undefined" && reset_password_dto_1.ResetPasswordDto) === "function" ? _k : Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('Authentication'),
     (0, common_1.Controller)({ path: 'auth', version: '1' }),
@@ -1266,6 +1640,39 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Object)
 ], AuthResponseDto.prototype, "user", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/auth/core/dto/forgot-password.dto.ts"
+/*!**********************************************************!*\
+  !*** ./src/modules/auth/core/dto/forgot-password.dto.ts ***!
+  \**********************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ForgotPasswordDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+class ForgotPasswordDto {
+}
+exports.ForgotPasswordDto = ForgotPasswordDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'user@example.com' }),
+    (0, class_validator_1.IsEmail)({}, { message: 'Please provide a valid email address' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Email is required' }),
+    __metadata("design:type", String)
+], ForgotPasswordDto.prototype, "email", void 0);
 
 
 /***/ },
@@ -1364,6 +1771,51 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Position ID is required' }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "position_id", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/auth/core/dto/reset-password.dto.ts"
+/*!*********************************************************!*\
+  !*** ./src/modules/auth/core/dto/reset-password.dto.ts ***!
+  \*********************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ResetPasswordDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+class ResetPasswordDto {
+}
+exports.ResetPasswordDto = ResetPasswordDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Reset token is required' }),
+    (0, class_validator_1.Matches)(/^[a-f0-9]{64}$/i, {
+        message: 'Reset token must be a valid token',
+    }),
+    __metadata("design:type", String)
+], ResetPasswordDto.prototype, "token", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'aNewPassword123' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'New password is required' }),
+    (0, class_validator_1.MinLength)(6, { message: 'Password must be at least 6 characters long' }),
+    __metadata("design:type", String)
+], ResetPasswordDto.prototype, "newPassword", void 0);
 
 
 /***/ },
@@ -3870,6 +4322,16 @@ module.exports = require("pg");
 
 /***/ },
 
+/***/ "resend"
+/*!*************************!*\
+  !*** external "resend" ***!
+  \*************************/
+(module) {
+
+module.exports = require("resend");
+
+/***/ },
+
 /***/ "rxjs/operators"
 /*!*********************************!*\
   !*** external "rxjs/operators" ***!
@@ -3877,6 +4339,16 @@ module.exports = require("pg");
 (module) {
 
 module.exports = require("rxjs/operators");
+
+/***/ },
+
+/***/ "crypto"
+/*!*************************!*\
+  !*** external "crypto" ***!
+  \*************************/
+(module) {
+
+module.exports = require("crypto");
 
 /***/ }
 

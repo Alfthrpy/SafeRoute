@@ -4,6 +4,8 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from '../../auth.service';
 import { LoginDto } from '../../core/dto/login.dto';
 import { RegisterDto } from '../../core/dto/register.dto';
+import { ForgotPasswordDto } from '../../core/dto/forgot-password.dto';
+import { ResetPasswordDto } from '../../core/dto/reset-password.dto';
 import { AuthResponseDto } from '../../core/dto/auth-response.dto';
 import { Public } from '@common/decorators/public.decorator';
 import { ApiSuccessResponse } from '@common/decorators/api-response.decorator';
@@ -67,5 +69,32 @@ export class AuthController {
       expires: new Date(0),
     });
     return { message: 'Logout successful' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Forgot password' })
+  @ApiResponse({
+    status: 200,
+    description: 'If the email is registered, a password reset link will be sent',
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto.email);
+    return { message: 'If the email is registered, a password reset link will be sent' };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired reset token' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+    return { message: 'Password reset successful' };
   }
 }

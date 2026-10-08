@@ -41,7 +41,7 @@ import { RoutesModule } from './modules/routes/routes.module';
     HealthModule,
     LayersModule,
     SchoolsModule,
-    RoutesModule
+    RoutesModule,
   ],
   providers: [
     // Global guards

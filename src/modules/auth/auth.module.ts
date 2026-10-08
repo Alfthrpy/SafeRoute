@@ -6,9 +6,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './controllers/v1/auth.controller';
 import { JwtStrategy } from './core/strategies/jwt.strategy';
 import type { StringValue } from 'ms';
+import { EmailModule } from '@common/email/email.module';
 
 @Module({
   imports: [
+    EmailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

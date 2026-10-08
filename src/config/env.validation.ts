@@ -17,6 +17,13 @@ export const validationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_REFRESH_EXPIRATION: Joi.string().default('30d'),
 
+  // Password reset email
+  RESEND_API_KEY: Joi.string().trim().required(),
+  MAIL_FROM: Joi.string().trim().required(),
+  FRONTEND_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+
   // CORS
   CORS_ORIGIN: Joi.string().default('*'),
 

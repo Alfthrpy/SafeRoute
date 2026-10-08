@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,13 +14,18 @@ import { LoginDto } from './core/dto/login.dto';
 import { RegisterDto } from './core/dto/register.dto';
 import { AuthResponseDto } from './core/dto/auth-response.dto';
 import { JwtPayload } from './core/interfaces/jwt-payload.interface';
+import { EmailService } from '@common/email/email.service';
+import { createHash, randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<Partial<AuthResponseDto>> {
@@ -169,5 +176,100 @@ export class AuthService {
         permissions,
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const emailExists = await this.prisma.user.findUnique({ where: { email } });
+    if (!emailExists) {
+      return;
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const hashedResetToken = this.hashResetToken(resetToken);
+    const frontendUrl = this.configService
+      .getOrThrow<string>('FRONTEND_URL')
+      .replace(/\/+$/, '');
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    await this.prisma.resetToken.create({
+      data: {
+        user_id: emailExists.id,
+        token: hashedResetToken,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    try {
+      await this.emailService.sendForgotPasswordEmail(
+        emailExists.email,
+        emailExists.first_name,
+        resetUrl,
+        60,
+      );
+    } catch (error) {
+      if (!(error instanceof InternalServerErrorException)) {
+        throw error;
+      }
+
+      try {
+        await this.prisma.resetToken.deleteMany({
+          where: { token: hashedResetToken },
+        });
+      } catch (cleanupError) {
+        const detail =
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : 'Unknown database error';
+        const stack =
+          cleanupError instanceof Error ? cleanupError.stack : undefined;
+        this.logger.error(
+          `Failed to remove unsent password reset token: ${detail}`,
+          stack,
+        );
+      }
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const hashedToken = this.hashResetToken(token);
+    const existingToken = await this.prisma.resetToken.findFirst({
+      where: {
+        token: hashedToken,
+      },
+      select: { id: true, user_id: true, expires_at: true },
+    });
+
+    if (!existingToken || existingToken.expires_at <= new Date()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await PasswordUtil.hash(newPassword);
+
+    await this.prisma.$transaction(async (transaction) => {
+      const claimedToken = await transaction.resetToken.deleteMany({
+        where: {
+          id: existingToken.id,
+          token: hashedToken,
+          expires_at: { gt: new Date() },
+        },
+      });
+
+      if (claimedToken.count !== 1) {
+        throw new BadRequestException('Invalid or expired reset token');
+      }
+
+      await transaction.user.update({
+        where: { id: existingToken.user_id },
+        data: { password: hashedPassword },
+      });
+
+      await transaction.resetToken.deleteMany({
+        where: { user_id: existingToken.user_id },
+      });
+    });
+  }
+
+  private hashResetToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }

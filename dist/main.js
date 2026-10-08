@@ -104,6 +104,7 @@ exports.PERMISSIONS = {
         DELETE: 'DELETE_USER',
         MANAGE_PERMISSION: 'MANAGE_USER_PERMISSION',
         CHANGE_POSITION: 'CHANGE_USER_POSITION',
+        MANAGE_FAVORITE_SCHOOLS: 'MANAGE_FAVORITE_SCHOOLS',
     },
     POSITION: {
         VIEW: 'VIEW_POSITION',
@@ -128,6 +129,9 @@ exports.PERMISSIONS = {
     },
     ROUTE: {
         VIEW: 'VIEW_ROUTE',
+    },
+    PROFILE: {
+        UPDATE: 'UPDATE_PROFILE',
     },
 };
 
@@ -163,7 +167,7 @@ const ApiSuccessResponse = (model) => {
     }));
 };
 exports.ApiSuccessResponse = ApiSuccessResponse;
-const ApiSuccessArrayResponse = (model) => {
+const ApiSuccessArrayResponse = (model, example) => {
     return (0, common_1.applyDecorators)((0, swagger_1.ApiExtraModels)(api_response_dto_1.ApiResponseDto, model), (0, swagger_1.ApiOkResponse)({
         schema: {
             allOf: [
@@ -177,10 +181,30 @@ const ApiSuccessArrayResponse = (model) => {
                     },
                 },
             ],
+            ...(example ? { example } : {}),
         },
     }));
 };
 exports.ApiSuccessArrayResponse = ApiSuccessArrayResponse;
+
+
+/***/ },
+
+/***/ "./src/common/decorators/get-user.decorator.ts"
+/*!*****************************************************!*\
+  !*** ./src/common/decorators/get-user.decorator.ts ***!
+  \*****************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetUser = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+exports.GetUser = (0, common_1.createParamDecorator)((data, ctx) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user;
+    return data ? user?.[data] : user;
+});
 
 
 /***/ },
@@ -2050,12 +2074,16 @@ let RoutesService = class RoutesService {
         const { fromLon, fromLat, schoolId, profile } = query;
         const [schoolRows, originRows] = await Promise.all([
             this.prisma.$queryRaw(client_1.Prisma.sql `
-          SELECT s."id", s."name", sap."road_node_id" AS "nodeId"
+          SELECT s."id", s."name", sap."road_node_id" AS "nodeId",
+            ST_AsGeoJSON(sf."geom")::json AS "location"
           FROM "public"."school" s
           INNER JOIN "public"."school_access_point" sap
             ON sap."school_id" = s."id"
           INNER JOIN "public"."road_node" rn
             ON rn."id" = sap."road_node_id"
+          INNER JOIN "public"."feature" sf
+            ON sf."id" = s."feature_id"
+            AND sf."deleted_at" IS NULL
           WHERE s."id" = ${schoolId}
             AND s."deleted_at" IS NULL
             AND sap."deleted_at" IS NULL
@@ -2108,7 +2136,7 @@ let RoutesService = class RoutesService {
         }));
         return {
             profile,
-            school: { id: school.id, name: school.name },
+            school: { id: school.id, name: school.name, location: school.location },
             distanceM: steps.reduce((total, step) => total + step.distanceM, 0),
             durationS: steps.reduce((total, step) => total + step.durationS, 0),
             snapDistanceM: Number(origin.snapDistanceM),
@@ -2651,11 +2679,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UsersController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const get_user_decorator_1 = __webpack_require__(/*! @common/decorators/get-user.decorator */ "./src/common/decorators/get-user.decorator.ts");
 const users_service_1 = __webpack_require__(/*! ../../users.service */ "./src/modules/users/users.service.ts");
 const create_user_dto_1 = __webpack_require__(/*! @modules/users/core/dto/create-user.dto */ "./src/modules/users/core/dto/create-user.dto.ts");
 const update_user_dto_1 = __webpack_require__(/*! @modules/users/core/dto/update-user.dto */ "./src/modules/users/core/dto/update-user.dto.ts");
@@ -2663,6 +2692,7 @@ const change_position_dto_1 = __webpack_require__(/*! @modules/users/core/dto/ch
 const manage_permissions_dto_1 = __webpack_require__(/*! @modules/users/core/dto/manage-permissions.dto */ "./src/modules/users/core/dto/manage-permissions.dto.ts");
 const user_query_dto_1 = __webpack_require__(/*! @modules/users/core/dto/user-query.dto */ "./src/modules/users/core/dto/user-query.dto.ts");
 const user_entity_1 = __webpack_require__(/*! ../../core/entities/user.entity */ "./src/modules/users/core/entities/user.entity.ts");
+const favorite_school_response_dto_1 = __webpack_require__(/*! ../../core/dto/favorite-school-response.dto */ "./src/modules/users/core/dto/favorite-school-response.dto.ts");
 const permissions_decorator_1 = __webpack_require__(/*! @common/decorators/permissions.decorator */ "./src/common/decorators/permissions.decorator.ts");
 const permissions_constant_1 = __webpack_require__(/*! @common/constants/permissions.constant */ "./src/common/constants/permissions.constant.ts");
 const api_response_decorator_1 = __webpack_require__(/*! @common/decorators/api-response.decorator */ "./src/common/decorators/api-response.decorator.ts");
@@ -2678,6 +2708,12 @@ let UsersController = class UsersController {
     }
     async findAll(query) {
         return this.usersService.findAll(query);
+    }
+    async getFavoritedSchools(userId) {
+        return this.usersService.getFavoriteSchools(userId);
+    }
+    async addFavoriteSchool(schoolId, userId) {
+        return this.usersService.addFavoriteSchool(userId, schoolId);
     }
     async findOne(id) {
         return this.usersService.findOne(id);
@@ -2720,6 +2756,54 @@ __decorate([
     __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
 ], UsersController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('favorite-schools'),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.USER.MANAGE_FAVORITE_SCHOOLS),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all favorited schools' }),
+    (0, api_response_decorator_1.ApiSuccessArrayResponse)(favorite_school_response_dto_1.FavoriteSchoolResponseDto, {
+        statusCode: 200,
+        message: 'Data retrieved successfully',
+        data: [
+            {
+                id: '550e8400-e29b-41d4-a716-446655440003',
+                user_id: '550e8400-e29b-41d4-a716-446655440004',
+                school_id: '550e8400-e29b-41d4-a716-446655440001',
+                created_at: '2026-10-08T03:15:00.000Z',
+                school: {
+                    id: '550e8400-e29b-41d4-a716-446655440001',
+                    npsn: '20202020',
+                    name: 'SMA Negeri 1 Bandung',
+                    level: 'SMA',
+                    status: 'Negeri',
+                    address: 'Jl. Ir. H. Juanda No. 93, Bandung',
+                    kelurahan: 'Lebakgede',
+                    kecamatan: 'Coblong',
+                    featureId: '550e8400-e29b-41d4-a716-446655440002',
+                    created_at: '2026-10-08T03:00:00.000Z',
+                    updated_at: '2026-10-08T03:00:00.000Z',
+                    deleted_at: null,
+                },
+            },
+        ],
+        errors: null,
+    }),
+    __param(0, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], UsersController.prototype, "getFavoritedSchools", null);
+__decorate([
+    (0, common_1.Post)('favorite-schools/:schoolId'),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.USER.MANAGE_FAVORITE_SCHOOLS),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a school to user favorites' }),
+    (0, swagger_1.ApiParam)({ name: 'schoolId', type: String, format: 'uuid' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(user_entity_1.UserEntity),
+    __param(0, (0, common_1.Param)('schoolId', common_1.ParseUUIDPipe)),
+    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+], UsersController.prototype, "addFavoriteSchool", null);
+__decorate([
     (0, common_1.Get)(':id'),
     (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.USER.VIEW),
     (0, swagger_1.ApiOperation)({ summary: 'Get user by ID' }),
@@ -2728,7 +2812,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
 ], UsersController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
@@ -2739,8 +2823,8 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_g = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _g : Object]),
-    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+    __metadata("design:paramtypes", [String, typeof (_j = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
 ], UsersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
@@ -2751,7 +2835,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
 ], UsersController.prototype, "remove", null);
 __decorate([
     (0, common_1.Patch)(':id/position'),
@@ -2762,8 +2846,8 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_k = typeof change_position_dto_1.ChangePositionDto !== "undefined" && change_position_dto_1.ChangePositionDto) === "function" ? _k : Object]),
-    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+    __metadata("design:paramtypes", [String, typeof (_m = typeof change_position_dto_1.ChangePositionDto !== "undefined" && change_position_dto_1.ChangePositionDto) === "function" ? _m : Object]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], UsersController.prototype, "changePosition", null);
 __decorate([
     (0, common_1.Post)(':id/permissions/assign'),
@@ -2774,8 +2858,8 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_m = typeof manage_permissions_dto_1.ManagePermissionsDto !== "undefined" && manage_permissions_dto_1.ManagePermissionsDto) === "function" ? _m : Object]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:paramtypes", [String, typeof (_p = typeof manage_permissions_dto_1.ManagePermissionsDto !== "undefined" && manage_permissions_dto_1.ManagePermissionsDto) === "function" ? _p : Object]),
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
 ], UsersController.prototype, "assignPermissions", null);
 __decorate([
     (0, common_1.Post)(':id/permissions/revoke'),
@@ -2786,8 +2870,8 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_p = typeof manage_permissions_dto_1.ManagePermissionsDto !== "undefined" && manage_permissions_dto_1.ManagePermissionsDto) === "function" ? _p : Object]),
-    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
+    __metadata("design:paramtypes", [String, typeof (_r = typeof manage_permissions_dto_1.ManagePermissionsDto !== "undefined" && manage_permissions_dto_1.ManagePermissionsDto) === "function" ? _r : Object]),
+    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
 ], UsersController.prototype, "revokePermissions", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
@@ -2898,6 +2982,104 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)
 ], CreateUserDto.prototype, "is_active", void 0);
+
+
+/***/ },
+
+/***/ "./src/modules/users/core/dto/favorite-school-response.dto.ts"
+/*!********************************************************************!*\
+  !*** ./src/modules/users/core/dto/favorite-school-response.dto.ts ***!
+  \********************************************************************/
+(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FavoriteSchoolResponseDto = exports.FavoriteSchoolDetailsDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+class FavoriteSchoolDetailsDto {
+}
+exports.FavoriteSchoolDetailsDto = FavoriteSchoolDetailsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '550e8400-e29b-41d4-a716-446655440001' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '20202020' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "npsn", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'SMA Negeri 1 Bandung' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'SMA' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "level", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Negeri' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Jl. Ir. H. Juanda No. 93, Bandung' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "address", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Lebakgede' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "kelurahan", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Coblong' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "kecamatan", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '550e8400-e29b-41d4-a716-446655440002' }),
+    __metadata("design:type", String)
+], FavoriteSchoolDetailsDto.prototype, "featureId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2026-10-08T03:00:00.000Z' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], FavoriteSchoolDetailsDto.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2026-10-08T03:00:00.000Z' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], FavoriteSchoolDetailsDto.prototype, "updated_at", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: null, nullable: true }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], FavoriteSchoolDetailsDto.prototype, "deleted_at", void 0);
+class FavoriteSchoolResponseDto {
+}
+exports.FavoriteSchoolResponseDto = FavoriteSchoolResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '550e8400-e29b-41d4-a716-446655440003' }),
+    __metadata("design:type", String)
+], FavoriteSchoolResponseDto.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '550e8400-e29b-41d4-a716-446655440004' }),
+    __metadata("design:type", String)
+], FavoriteSchoolResponseDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '550e8400-e29b-41d4-a716-446655440001' }),
+    __metadata("design:type", String)
+], FavoriteSchoolResponseDto.prototype, "school_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2026-10-08T03:15:00.000Z' }),
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+], FavoriteSchoolResponseDto.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: () => FavoriteSchoolDetailsDto }),
+    __metadata("design:type", FavoriteSchoolDetailsDto)
+], FavoriteSchoolResponseDto.prototype, "school", void 0);
 
 
 /***/ },
@@ -3324,6 +3506,62 @@ let UsersService = class UsersService {
             throw new common_1.NotFoundException(`User with ID ${id} not found`);
         }
         return user_transform_helper_1.UserTransformHelper.toEntity(user);
+    }
+    async addFavoriteSchool(userId, schoolId) {
+        const user = await this.prisma.user.findFirst({
+            where: { id: userId, deleted_at: null },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException(`User with ID ${userId} not found`);
+        }
+        const existingFavorite = await this.prisma.userFavoriteSchool.findFirst({
+            where: { user_id: userId, school_id: schoolId },
+        });
+        if (existingFavorite) {
+            throw new common_1.ConflictException('School is already in user favorites');
+        }
+        await this.prisma.userFavoriteSchool.create({
+            data: {
+                user_id: userId,
+                school_id: schoolId,
+            },
+        });
+        const updatedUser = await this.prisma.user.findFirst({
+            where: { id: userId, deleted_at: null },
+            include: {
+                position: {
+                    include: {
+                        position_permissions: {
+                            include: {
+                                permission: true,
+                            },
+                        },
+                    },
+                },
+                favorite_schools: {
+                    include: {
+                        school: true,
+                    },
+                },
+            },
+        });
+        return user_transform_helper_1.UserTransformHelper.toEntity(updatedUser);
+    }
+    async getFavoriteSchools(userId) {
+        const user = await this.prisma.user.findFirst({
+            where: { id: userId, deleted_at: null },
+            include: {
+                favorite_schools: {
+                    include: {
+                        school: true,
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException(`User with ID ${userId} not found`);
+        }
+        return user.favorite_schools;
     }
     async update(id, updateUserDto) {
         const user = await this.prisma.user.findFirst({

@@ -23,12 +23,19 @@ async function main() {
   await prisma.position.deleteMany();
 
   // Run seeders
-  const { adminPosition, memberPosition } = await seedPositions(prisma);
-  await seedPermissions(prisma, adminPosition.id, memberPosition.id);
+  const { adminPosition, memberPosition, commonPosition } =
+    await seedPositions(prisma);
+  await seedPermissions(
+    prisma,
+    adminPosition.id,
+    memberPosition.id,
+    commonPosition.id,
+  );
   const { adminUser, memberUser, defaultPassword } = await seedUsers(
     prisma,
     adminPosition.id,
     memberPosition.id,
+    commonPosition.id
   );
 
   // Summary

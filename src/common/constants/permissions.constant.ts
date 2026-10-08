@@ -7,6 +7,7 @@ export const PERMISSIONS = {
     DELETE: 'DELETE_USER',
     MANAGE_PERMISSION: 'MANAGE_USER_PERMISSION',
     CHANGE_POSITION: 'CHANGE_USER_POSITION',
+    MANAGE_FAVORITE_SCHOOLS: 'MANAGE_FAVORITE_SCHOOLS',
   },
 
   // Position Management
@@ -41,6 +42,11 @@ export const PERMISSIONS = {
   // Route Finding Access
   ROUTE: {
     VIEW: 'VIEW_ROUTE',
+  },
+
+  // Self-service profile management
+  PROFILE: {
+    UPDATE: 'UPDATE_PROFILE',
   },
 
 } as const;

@@ -4,6 +4,7 @@ export const seedPermissions = async (
   prisma: PrismaClient,
   adminPositionId: string,
   memberPositionId: string,
+  commonPositionId: string,
 ) => {
   console.log('🔐 Seeding permissions...');
 
@@ -15,6 +16,7 @@ export const seedPermissions = async (
     { name: 'DELETE_USER', resource: 'USER', action: 'DELETE', description: 'Delete user' },
     { name: 'MANAGE_USER_PERMISSION', resource: 'USER', action: 'MANAGE_PERMISSION', description: 'Assign or revoke user permissions' },
     { name: 'CHANGE_USER_POSITION', resource: 'USER', action: 'CHANGE_POSITION', description: 'Change user position/role' },
+    { name: 'MANAGE_FAVORITE_SCHOOLS', resource: 'USER', action: 'MANAGE_FAVORITE_SCHOOLS', description: 'Manage user favorite schools' },
 
     // Position Management
     { name: 'VIEW_POSITION', resource: 'POSITION', action: 'VIEW', description: 'View position information' },
@@ -39,6 +41,9 @@ export const seedPermissions = async (
     
     // Route Finding Access
     { name: 'VIEW_ROUTE', resource: 'ROUTE', action: 'VIEW', description: 'Access route finding feature' },
+
+    // Self-service profile management
+    { name: 'UPDATE_PROFILE', resource: 'PROFILE', action: 'UPDATE', description: 'Update own profile information' },
   ];
 
   const permissions = await Promise.all(
@@ -75,6 +80,23 @@ export const seedPermissions = async (
       position_id: memberPositionId,
       permission_id: viewSchoolPermission.id,
     },
+  });
+
+  // Common users can view schools, find routes, and update their own profiles.
+  const commonPermissionNames = ['VIEW_SCHOOL', 'VIEW_ROUTE', 'UPDATE_PROFILE', 'MANAGE_FAVORITE_SCHOOLS'];
+  const commonPermissions = commonPermissionNames.map((name) => {
+    const permission = permissions.find((p) => p.name === name);
+    if (!permission) {
+      throw new Error(`${name} permission was not seeded`);
+    }
+    return {
+      position_id: commonPositionId,
+      permission_id: permission.id,
+    };
+  });
+
+  await prisma.positionPermission.createMany({
+    data: commonPermissions,
   });
 
   console.log('✅ Permissions assigned to positions');

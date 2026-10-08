@@ -16,6 +16,13 @@ export const seedPositions = async (prisma: PrismaClient) => {
     },
   });
 
+  const commonPosition = await prisma.position.create({
+    data:{
+      name: 'Common',
+      description: 'Common user with basic permissions',
+    }
+  })
+
   console.log('✅ Positions seeded');
-  return { adminPosition, memberPosition };
+  return { adminPosition, memberPosition, commonPosition };
 };

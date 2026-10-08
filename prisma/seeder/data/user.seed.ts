@@ -5,6 +5,7 @@ export const seedUsers = async (
   prisma: PrismaClient,
   adminPositionId: string,
   memberPositionId: string,
+  commonPositionId: string
 ) => {
   console.log('👥 Seeding users...');
 
@@ -33,7 +34,18 @@ export const seedUsers = async (
     },
   });
 
+  const commonUser = await prisma.user.create({
+    data: {
+      email: 'common@kulidigital.com',
+      password: hashedPassword,
+      first_name: 'Common',
+      last_name: 'User',
+      position_id: commonPositionId,
+      is_active: true,
+    }
+  })
+
   console.log('✅ Users seeded');
 
-  return { adminUser, memberUser, defaultPassword };
+  return { adminUser, memberUser, commonUser, defaultPassword };
 };

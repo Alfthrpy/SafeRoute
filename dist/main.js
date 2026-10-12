@@ -40,6 +40,7 @@ const auth_module_1 = __webpack_require__(/*! ./modules/auth/auth.module */ "./s
 const layers_module_1 = __webpack_require__(/*! ./modules/layers/layers.module */ "./src/modules/layers/layers.module.ts");
 const schools_module_1 = __webpack_require__(/*! ./modules/schools/schools.module */ "./src/modules/schools/schools.module.ts");
 const routes_module_1 = __webpack_require__(/*! ./modules/routes/routes.module */ "./src/modules/routes/routes.module.ts");
+const throttler_1 = __webpack_require__(/*! @nestjs/throttler */ "@nestjs/throttler");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -58,6 +59,14 @@ exports.AppModule = AppModule = __decorate([
             layers_module_1.LayersModule,
             schools_module_1.SchoolsModule,
             routes_module_1.RoutesModule,
+            throttler_1.ThrottlerModule.forRoot({
+                throttlers: [
+                    {
+                        ttl: (0, throttler_1.seconds)(60),
+                        limit: 100,
+                    },
+                ],
+            })
         ],
         providers: [
             {
@@ -79,6 +88,10 @@ exports.AppModule = AppModule = __decorate([
             {
                 provide: core_1.APP_INTERCEPTOR,
                 useClass: transform_interceptor_1.TransformInterceptor,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
             },
         ],
     })
@@ -2512,13 +2525,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var RoutesService_1;
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RoutesService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const prisma_service_1 = __webpack_require__(/*! @common/prisma/prisma.service */ "./src/common/prisma/prisma.service.ts");
 const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
-let RoutesService = class RoutesService {
+let RoutesService = RoutesService_1 = class RoutesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
@@ -2567,6 +2581,9 @@ let RoutesService = class RoutesService {
         const origin = originRows[0];
         if (!origin) {
             throw new common_1.NotFoundException('No road nodes are available for snapping');
+        }
+        if (Number(origin.snapDistanceM) > RoutesService_1.MAX_SNAP_DISTANCE_M) {
+            throw new common_1.BadRequestException('Ups, lokasimu di luar jangkauan peta jalan kami. Coba lagi di daerah Bandung tengah dan utara ya!');
         }
         const rows = origin.nodeId === school.nodeId
             ? []
@@ -2662,7 +2679,8 @@ let RoutesService = class RoutesService {
     }
 };
 exports.RoutesService = RoutesService;
-exports.RoutesService = RoutesService = __decorate([
+RoutesService.MAX_SNAP_DISTANCE_M = 1000;
+exports.RoutesService = RoutesService = RoutesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
 ], RoutesService);
@@ -2700,6 +2718,7 @@ const permissions_guard_1 = __webpack_require__(/*! @common/guards/permissions.g
 const create_school_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/create-school.dto */ "./src/modules/schools/core/dto/create-school.dto.ts");
 const school_query_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/school-query.dto */ "./src/modules/schools/core/dto/school-query.dto.ts");
 const update_school_dto_1 = __webpack_require__(/*! @modules/schools/core/dto/update-school.dto */ "./src/modules/schools/core/dto/update-school.dto.ts");
+const school_entity_1 = __webpack_require__(/*! @modules/schools/core/entities/school.entity */ "./src/modules/schools/core/entities/school.entity.ts");
 const schools_service_1 = __webpack_require__(/*! @modules/schools/schools.service */ "./src/modules/schools/schools.service.ts");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
@@ -2715,7 +2734,7 @@ let SchoolsController = class SchoolsController {
         return this.schoolsService.findAll(query);
     }
     findOne(id) {
-        return this.schoolsService.findOne(+id);
+        return this.schoolsService.findOne(id);
     }
     update(id, updateSchoolDto) {
         return this.schoolsService.update(+id, updateSchoolDto);
@@ -2744,7 +2763,10 @@ __decorate([
 ], SchoolsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, permissions_decorator_1.Permissions)(permissions_constant_1.PERMISSIONS.SCHOOL.VIEW),
+    (0, swagger_1.ApiOperation)({ summary: 'Get school by id' }),
+    (0, api_response_decorator_1.ApiSuccessResponse)(school_entity_1.SchoolEntity),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
@@ -3093,8 +3115,40 @@ let SchoolsService = class SchoolsService {
             },
         };
     }
-    findOne(id) {
-        return `This action returns a #${id} school`;
+    async findOne(id) {
+        const rows = await this.prisma.$queryRaw(client_1.Prisma.sql `
+      SELECT
+        s."id",
+        s."npsn",
+        s."name",
+        s."level",
+        s."status",
+        s."address",
+        s."kelurahan",
+        s."kecamatan",
+        s."feature_id" AS "featureId",
+        s."created_at",
+        s."updated_at",
+        s."deleted_at",
+        f."id" AS "feature_id",
+        f."layer_id" AS "layerId",
+        ST_AsGeoJSON(f."geom")::json AS "geom",
+        f."source_id" AS "sourceId",
+        f."created_at" AS "feature_created_at",
+        f."updated_at" AS "feature_updated_at",
+        f."deleted_at" AS "feature_deleted_at"
+      FROM "public"."school" s
+      INNER JOIN "public"."feature" f
+        ON f."id" = s."feature_id"
+      WHERE s."id" = ${id}
+        AND s."deleted_at" IS NULL
+        AND f."deleted_at" IS NULL
+      LIMIT 1
+    `);
+        if (rows.length === 0) {
+            throw new common_1.NotFoundException('School not found');
+        }
+        return school_transform_helper_1.SchoolTransformHelper.toEntity(rows[0]);
     }
     update(id, updateSchoolDto) {
         return `This action updates a #${id} school`;
@@ -3151,6 +3205,7 @@ const api_response_decorator_1 = __webpack_require__(/*! @common/decorators/api-
 const pagination_dto_1 = __webpack_require__(/*! @common/dto/pagination.dto */ "./src/common/dto/pagination.dto.ts");
 const permissions_guard_1 = __webpack_require__(/*! @common/guards/permissions.guard */ "./src/common/guards/permissions.guard.ts");
 const jwt_auth_guard_1 = __webpack_require__(/*! @common/guards/jwt-auth.guard */ "./src/common/guards/jwt-auth.guard.ts");
+const cache_manager_1 = __webpack_require__(/*! @nestjs/cache-manager */ "@nestjs/cache-manager");
 let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
@@ -3329,6 +3384,7 @@ exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)({ path: 'users', version: '1' }),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),
     __metadata("design:paramtypes", [typeof (_a = typeof users_service_1.UsersService !== "undefined" && users_service_1.UsersService) === "function" ? _a : Object])
 ], UsersController);
 
@@ -3808,11 +3864,13 @@ exports.UsersModule = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const users_service_1 = __webpack_require__(/*! ./users.service */ "./src/modules/users/users.service.ts");
 const users_controller_1 = __webpack_require__(/*! ./controllers/v1/users.controller */ "./src/modules/users/controllers/v1/users.controller.ts");
+const cache_manager_1 = __webpack_require__(/*! @nestjs/cache-manager */ "@nestjs/cache-manager");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
 exports.UsersModule = UsersModule = __decorate([
     (0, common_1.Module)({
+        imports: [cache_manager_1.CacheModule.register()],
         controllers: [users_controller_1.UsersController],
         providers: [users_service_1.UsersService],
         exports: [users_service_1.UsersService],
@@ -4162,6 +4220,16 @@ exports.UsersService = UsersService = __decorate([
 
 /***/ },
 
+/***/ "@nestjs/cache-manager"
+/*!****************************************!*\
+  !*** external "@nestjs/cache-manager" ***!
+  \****************************************/
+(module) {
+
+module.exports = require("@nestjs/cache-manager");
+
+/***/ },
+
 /***/ "@nestjs/common"
 /*!*********************************!*\
   !*** external "@nestjs/common" ***!
@@ -4219,6 +4287,16 @@ module.exports = require("@nestjs/passport");
 (module) {
 
 module.exports = require("@nestjs/swagger");
+
+/***/ },
+
+/***/ "@nestjs/throttler"
+/*!************************************!*\
+  !*** external "@nestjs/throttler" ***!
+  \************************************/
+(module) {
+
+module.exports = require("@nestjs/throttler");
 
 /***/ },
 

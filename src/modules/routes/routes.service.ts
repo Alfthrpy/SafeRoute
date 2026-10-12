@@ -18,6 +18,14 @@ import {
 export class RoutesService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Batas jujur: asal yang di-snap lebih jauh dari ini berarti jaringan jalan
+   * belum mencakup daerah pengguna (kasus Cibiru: snap 9,2 km!). Tolak dengan
+   * pesan ramah, jangan menggambar rute menyesatkan.
+   * TODO(pertanyaan-terbuka-1): jadikan konfigurasi saat batas pilot dikunci.
+   */
+  private static readonly MAX_SNAP_DISTANCE_M = 1000;
+
   async findRoute(query: FindRouteDto): Promise<RouteResponseDto> {
     const { fromLon, fromLat, schoolId, profile } = query;
     const [schoolRows, originRows] = await Promise.all([
@@ -71,6 +79,12 @@ export class RoutesService {
     const origin = originRows[0];
     if (!origin) {
       throw new NotFoundException('No road nodes are available for snapping');
+    }
+
+    if (Number(origin.snapDistanceM) > RoutesService.MAX_SNAP_DISTANCE_M) {
+      throw new BadRequestException(
+        'Ups, lokasimu di luar jangkauan peta jalan kami. Coba lagi di daerah Bandung tengah dan utara ya!',
+      );
     }
 
     const rows =

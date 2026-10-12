@@ -83,8 +83,40 @@ export class SchoolsService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} school`;
+  async findOne(id: string) {
+    const rows = await this.prisma.$queryRaw<SchoolWithFeatureRow[]>(Prisma.sql`
+      SELECT
+        s."id",
+        s."npsn",
+        s."name",
+        s."level",
+        s."status",
+        s."address",
+        s."kelurahan",
+        s."kecamatan",
+        s."feature_id" AS "featureId",
+        s."created_at",
+        s."updated_at",
+        s."deleted_at",
+        f."id" AS "feature_id",
+        f."layer_id" AS "layerId",
+        ST_AsGeoJSON(f."geom")::json AS "geom",
+        f."source_id" AS "sourceId",
+        f."created_at" AS "feature_created_at",
+        f."updated_at" AS "feature_updated_at",
+        f."deleted_at" AS "feature_deleted_at"
+      FROM "public"."school" s
+      INNER JOIN "public"."feature" f
+        ON f."id" = s."feature_id"
+      WHERE s."id" = ${id}
+        AND s."deleted_at" IS NULL
+        AND f."deleted_at" IS NULL
+      LIMIT 1
+    `);
+    if (rows.length === 0) {
+      throw new NotFoundException('School not found');
+    }
+    return SchoolTransformHelper.toEntity(rows[0]);
   }
 
   update(id: number, updateSchoolDto: UpdateSchoolDto) {

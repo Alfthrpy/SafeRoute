@@ -8,7 +8,7 @@ import { SchoolQueryDto } from '@modules/schools/core/dto/school-query.dto';
 import { UpdateSchoolDto } from '@modules/schools/core/dto/update-school.dto';
 import { SchoolEntity } from '@modules/schools/core/entities/school.entity';
 import { SchoolsService } from '@modules/schools/schools.service';
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PERMISSIONS } from '@common/constants/permissions.constant';
 
@@ -33,8 +33,11 @@ export class SchoolsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.schoolsService.findOne(+id);
+  @Permissions(PERMISSIONS.SCHOOL.VIEW)
+  @ApiOperation({ summary: 'Get school by id' })
+  @ApiSuccessResponse(SchoolEntity)
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.schoolsService.findOne(id);
   }
 
   @Patch(':id')

@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiCookieAuth, ApiParam } from '@nestjs/swagger';
 import { GetUser } from '@common/decorators/get-user.decorator';
@@ -31,10 +32,12 @@ import {
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 
 @ApiTags('Users')
 @Controller({ path: 'users', version: '1' })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseInterceptors(CacheInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

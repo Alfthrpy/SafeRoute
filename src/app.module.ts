@@ -23,6 +23,8 @@ import { LayersModule } from './modules/layers/layers.module';
 import { SchoolsModule } from './modules/schools/schools.module';
 import { RoutesModule } from './modules/routes/routes.module';
 
+import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+
 @Module({
   imports: [
     // Configuration
@@ -42,6 +44,16 @@ import { RoutesModule } from './modules/routes/routes.module';
     LayersModule,
     SchoolsModule,
     RoutesModule,
+
+    //Throttle Module
+    ThrottlerModule.forRoot({
+        throttlers: [
+        {
+          ttl: seconds(60),
+          limit: 100,
+        },
+      ],
+    })
   ],
   providers: [
     // Global guards
@@ -68,6 +80,11 @@ import { RoutesModule } from './modules/routes/routes.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+        // Throttler guard
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

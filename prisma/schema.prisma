@@ -159,6 +159,7 @@ model RoadNode {
   id         String    @id @default(uuid())
   featureId  String    @unique @map("feature_id")
   osmNodeId  String?   @map("osm_node_id")
+  isCrossing Boolean   @default(false) @map("is_crossing")
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
@@ -185,10 +186,12 @@ model RoadEdge {
   isRoutable   Boolean   @default(true) @map("is_routable")
   costSafe     Float?    @map("cost_safe")
   costBalanced Float?    @map("cost_balanced")
+  hasSidewalk  Boolean   @default(false) @map("has_sidewalk")
+  isBusy       Boolean   @default(false) @map("is_busy")
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
   deleted_at   DateTime?
-
+ 
   road       Road     @relation(fields: [roadId], references: [id])
   feature    Feature  @relation(fields: [featureId], references: [id])
   sourceNode RoadNode @relation("EdgeSource", fields: [sourceNodeId], references: [id])

@@ -12,6 +12,7 @@ import {
   RouteProfile,
   RouteResponseDto,
   RouteStepDto,
+  SafetyDto,
 } from './core/interfaces/route-response.interface';
 
 @Injectable()
@@ -25,6 +26,19 @@ export class RoutesService {
    * TODO(pertanyaan-terbuka-1): jadikan konfigurasi saat batas pilot dikunci.
    */
   private static readonly MAX_SNAP_DISTANCE_M = 1000;
+
+  /**
+   * Fallback jujur kalau function get_route_safety belum ada di DB
+   * (migrate_safety.sql belum dijalankan): endpoint tetap jalan, frontend
+   * dapat sinyal eksplisit ketimbang 500.
+   */
+  private static readonly SAFETY_UNAVAILABLE: SafetyDto = {
+    score: 0,
+    sidewalkM: 0,
+    crossings: 0,
+    busyRoadM: 0,
+    reasons: ['Data safety belum tersedia, jalankan migrate_safety.sql'],
+  };
 
   async findRoute(query: FindRouteDto): Promise<RouteResponseDto> {
     const { fromLon, fromLat, schoolId, profile } = query;
@@ -98,6 +112,20 @@ export class RoutesService {
       );
     }
 
+    const safety: SafetyDto =
+      origin.nodeId === school.nodeId
+        ? {
+            score: 100,
+            sidewalkM: 0,
+            crossings: 0,
+            busyRoadM: 0,
+            reasons: ['Sudah sampai di tujuan'],
+          }
+        : await this.getSafety(origin.nodeId, school.nodeId, profile).then(
+            (result) => result[0]?.safety ?? RoutesService.SAFETY_UNAVAILABLE,
+            () => RoutesService.SAFETY_UNAVAILABLE,
+          );
+
     const steps: RouteStepDto[] = rows.map((row) => ({
       seq: Number(row.seq),
       roadName: row.roadName,
@@ -119,6 +147,7 @@ export class RoutesService {
       distanceM: steps.reduce((total, step) => total + step.distanceM, 0),
       durationS: steps.reduce((total, step) => total + step.durationS, 0),
       snapDistanceM: Number(origin.snapDistanceM),
+      safety,
       steps,
       geometry: {
         type: 'FeatureCollection',
@@ -192,6 +221,44 @@ export class RoutesService {
       FROM route
       INNER JOIN v_routing v ON v."eid" = route."edge"
       ORDER BY route."seq"
+    `);
+  }
+
+  /**
+   * Agregat safety rute via function DB get_route_safety (migrate_safety.sql).
+   * vid di-resolve dari node uuid dengan pola yang sama seperti findRouteSteps.
+   */
+  private getSafety(
+    originNodeId: string,
+    destinationNodeId: string,
+    profile: RouteProfile,
+  ) {
+    return this.prisma.$queryRaw<{ safety: SafetyDto }[]>(Prisma.sql`
+      WITH who AS (
+        SELECT
+          (
+            SELECT vid
+            FROM (
+              SELECT source AS vid, source_node_id AS nid FROM v_routing
+              UNION
+              SELECT target AS vid, target_node_id AS nid FROM v_routing
+            ) u
+            WHERE nid = ${originNodeId}
+            LIMIT 1
+          ) AS src,
+          (
+            SELECT vid
+            FROM (
+              SELECT source AS vid, source_node_id AS nid FROM v_routing
+              UNION
+              SELECT target AS vid, target_node_id AS nid FROM v_routing
+            ) u
+            WHERE nid = ${destinationNodeId}
+            LIMIT 1
+          ) AS tgt
+      )
+      SELECT get_route_safety(who."src", who."tgt", ${profile}) AS "safety"
+      FROM who
     `);
   }
 }

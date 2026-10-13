@@ -18,6 +18,14 @@ export interface RouteStepDto {
   geometry: RouteGeoJsonGeometry;
 }
 
+export interface SafetyDto {
+  score: number;
+  sidewalkM: number;
+  crossings: number;
+  busyRoadM: number;
+  reasons: string[];
+}
+
 export interface RouteGeoJsonFeature {
   type: 'Feature';
   properties: Omit<RouteStepDto, 'geometry'>;
@@ -30,6 +38,7 @@ export interface RouteResponseDto {
   distanceM: number;
   durationS: number;
   snapDistanceM: number;
+  safety: SafetyDto;
   steps: RouteStepDto[];
   geometry: {
     type: 'FeatureCollection';
